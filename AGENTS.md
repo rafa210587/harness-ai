@@ -4,7 +4,7 @@
 
 This repository implements a small local AI harness.
 
-Read these documents before making architectural changes:
+Read these documents before architectural changes:
 
 1. `ARCHITECTURE.md`
 2. `REPOSITORY.md`
@@ -12,33 +12,63 @@ Read these documents before making architectural changes:
 
 ## Core constraints
 
-- Use Python 3.12 for the harness.
-- Use `uv` for Python/environment/dependency management.
+- Use Python 3.12 and `uv`.
 - Keep the core runtime small and explicit.
-- Do not introduce LangChain, LangGraph, Temporal, Redis, PostgreSQL, a vector database, Kubernetes or a multi-agent framework without a concrete requirement and an architecture decision.
-- Prefer vertical slices that run end-to-end over speculative abstractions.
-- DeepSeek is the first LLM provider, but provider-specific code must stay behind the provider interface.
-- Tools are the main capability boundary.
-- All LLM-visible tools must go through the Tool Registry.
+- Do not introduce LangChain, LangGraph, Temporal, Redis, PostgreSQL, a vector database, Kubernetes or a multi-agent framework without a concrete requirement and architecture decision.
+- Prefer vertical slices over speculative abstractions.
+- DeepSeek is the first LLM provider; provider-specific code stays behind the provider interface.
+- All LLM-visible capabilities go through the Tool Registry.
 - Blender/Unity/browser implementation details do not belong in the agent loop.
 - Prefer APIs, CLI and application scripting over mouse/keyboard automation.
-- Risky side effects must pass through the approval/permission layer.
+- Risky side effects must pass through approval/permission enforcement.
 - Never commit credentials, browser session secrets or `.env`.
+
+## Change workflow
+
+Use `.claude/skills/feature-workflow/SKILL.md` to classify every non-trivial change.
+
+```text
+small  -> inspect -> change -> test
+medium -> refine -> SPEC -> TASKS -> implement -> simplify -> review
+large  -> refine -> SPEC -> PLAN -> TASKS -> implement -> simplify -> review
+```
+
+Rules:
+
+- Small changes do not get planning documents.
+- Medium/large work artifacts live under `.work/<feature>/` and are not committed.
+- Specs define behavior and acceptance criteria before implementation.
+- Plans/tasks must not restate the spec.
+- Review is a separate pass and must not modify code while producing findings.
+- Temporary work artifacts are removed when the feature is complete.
+- Permanent docs change only when a lasting repository decision changed.
+- Do not create separate subagents just to implement this workflow; skills are the default until independent agents show measurable value.
 
 ## Before editing
 
-Investigate the relevant code first. Do not infer implementation details from filenames alone.
+Investigate relevant code first. Do not infer implementation details from filenames alone.
 
 For a non-trivial change:
 
-1. identify the affected module boundary;
-2. identify the smallest vertical behavior to change;
-3. inspect relevant tests;
-4. use the matching repository skill if one exists under `.claude/skills/`.
+1. classify it with `feature-workflow`;
+2. inspect the affected module and tests;
+3. create only the temporary artifacts required by the classification;
+4. use the matching technical skill when applicable.
 
 ## Skills
 
-Use these playbooks when applicable:
+Workflow:
+
+- `.claude/skills/feature-workflow/SKILL.md`
+- `.claude/skills/refine-feature/SKILL.md`
+- `.claude/skills/spec-feature/SKILL.md`
+- `.claude/skills/plan-feature/SKILL.md`
+- `.claude/skills/implement-feature/SKILL.md`
+- `.claude/skills/simplify-change/SKILL.md`
+- `.claude/skills/review-change/SKILL.md`
+- `.claude/skills/concise-docs/SKILL.md`
+
+Technical:
 
 - `.claude/skills/architecture-change/SKILL.md`
 - `.claude/skills/add-tool/SKILL.md`
@@ -49,23 +79,14 @@ Use these playbooks when applicable:
 - `.claude/skills/security-review/SKILL.md`
 - `.claude/skills/test-change/SKILL.md`
 
-Even when the current coding agent does not auto-discover these skill files, read the relevant file as normal repository context.
+If the current coding agent does not auto-discover these files, read the relevant skill as normal repository context.
 
 ## Dependency rules
 
-Runtime dependencies must have a concrete runtime purpose.
-
-Before adding a dependency, check whether the standard library or an existing dependency already solves the requirement.
-
-Use:
+Runtime dependencies need a concrete runtime purpose. Check the standard library and existing dependencies first.
 
 ```powershell
 uv add <package>
-```
-
-Development-only dependency:
-
-```powershell
 uv add --dev <package>
 ```
 
@@ -73,27 +94,26 @@ Never edit `uv.lock` manually.
 
 ## Python
 
-Core contracts should be typed.
-
 Prefer:
 
+- typed core contracts;
 - small modules;
 - explicit dataclasses/Pydantic models;
 - async only when I/O concurrency benefits from it;
-- dependency injection through constructors/functions rather than global mutable registries;
-- domain-specific exceptions normalized at boundaries.
+- constructor/function dependency injection;
+- domain-specific errors normalized at boundaries.
 
 Avoid:
 
-- broad `except Exception` without re-raising/normalization;
-- implicit magic;
+- broad `except Exception` without useful normalization/re-raise;
 - mutable global session state;
 - provider-specific types leaking into runtime;
-- application-controller types leaking into tool schemas.
+- application-controller types leaking into tool schemas;
+- abstractions with no current use.
 
 ## Tools
 
-When adding a tool, define:
+Every tool defines:
 
 ```text
 name
@@ -104,25 +124,17 @@ timeout behavior
 result contract
 ```
 
-Every execution path returns a normalized `ToolResult`.
-
-Tool failures are data for the agent. Preserve useful stderr/errors.
-
-A tool must not silently perform a more dangerous action than its declared risk level.
+Every execution path returns a normalized `ToolResult`. Preserve useful stderr/errors. A tool must not perform behavior more dangerous than its declared risk level.
 
 ## Runtime hooks
 
-Runtime hooks are product behavior.
-
-Development hooks under `.claude/hooks/` are not runtime hooks.
-
-Do not couple them.
+Runtime hooks are product behavior. Development hooks under `.claude/hooks/` are not runtime hooks. Do not couple them.
 
 ## Tests
 
-For normal changes, run the smallest relevant test set first.
+Run the smallest relevant test set first.
 
-Before considering a substantial change complete:
+Before a substantial change is complete:
 
 ```powershell
 uv run ruff format --check .
@@ -131,42 +143,33 @@ uv run mypy src
 uv run pytest -m "not blender and not unity and not browser_external"
 ```
 
-Run Blender/Unity/external browser tests only when relevant and the environment supports them.
-
-Do not change tests merely to make incorrect behavior pass.
+Run Blender/Unity/external browser tests only when relevant and supported by the environment. Do not change tests merely to make incorrect behavior pass.
 
 ## Documentation
 
-Update `ARCHITECTURE.md` when an architectural decision changes.
+Follow `.claude/skills/concise-docs/SKILL.md`.
 
-Update `SETUP.md` when a machine/setup/dependency requirement changes.
+- `ARCHITECTURE.md`: lasting architecture/ADRs.
+- `REPOSITORY.md`: repository boundaries/workflow.
+- `SETUP.md`: environment/dependency setup.
+- `SKILLS_HOOKS.md`: skill/hook model.
+- `.work/`: temporary refinement/spec/plan/task artifacts.
 
-Update `REPOSITORY.md` when repository ownership/boundaries/conventions change.
-
-Do not duplicate the same detailed rule across all three files.
+Do not duplicate the same rule across permanent documents.
 
 ## Git
 
-Do not:
-
-```text
-git reset --hard
-git clean -fd
-force push
-delete unrelated user changes
-```
-
-unless the user explicitly requests that exact destructive operation.
+Do not run destructive operations such as `git reset --hard`, `git clean -fd`, force push or deleting unrelated user changes unless explicitly requested.
 
 Keep commits logically scoped.
 
 ## Completion report
 
-When finishing implementation work, state:
+State:
 
 - what changed;
 - what was tested;
 - what was not tested;
-- any remaining limitation.
+- remaining limitations/findings.
 
-Do not claim a tool/application workflow works if it was not actually executed.
+Do not claim a workflow works if it was not actually executed.
