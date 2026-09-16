@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pytest
+
+from harness.browser.security import ensure_public_http_url, is_blocked_http_url
 from harness.tools import (
     BrowserClickTool,
     BrowserFillTool,
@@ -66,6 +69,39 @@ async def test_browser_tools_execute_through_controller(tmp_path: Path) -> None:
     assert waited.success is True
     assert captured.artifacts == ["artifacts/page.png"]
     assert (tmp_path / "artifacts/page.png").exists()
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://localhost/admin",
+        "http://service.localhost/admin",
+        "http://127.0.0.1/admin",
+        "http://10.0.0.1/admin",
+        "http://172.16.1.1/admin",
+        "http://192.168.1.1/admin",
+        "http://169.254.169.254/latest/meta-data/",
+        "http://[::1]/admin",
+        "http://metadata.google.internal/computeMetadata/v1/",
+    ],
+)
+async def test_browser_navigate_blocks_local_and_private_targets(url: str) -> None:
+    controller = FakeBrowserController()
+    registry = ToolRegistry()
+    registry.register(BrowserNavigateTool(controller))
+
+    result = await registry.execute("browser_navigate", {"url": url})
+
+    assert result.success is False
+    assert controller.actions == []
+
+
+def test_browser_network_guard_allows_public_http_and_non_http_runtime_resources() -> None:
+    ensure_public_http_url("https://example.com/path")
+
+    assert is_blocked_http_url("https://example.com/path") is False
+    assert is_blocked_http_url("http://127.0.0.1/") is True
+    assert is_blocked_http_url("data:text/html,<h1>offline</h1>") is False
 
 
 def test_browser_click_is_dangerous() -> None:
