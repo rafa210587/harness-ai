@@ -58,7 +58,7 @@ def build_tool_registry(
     unity = UnityController(settings.unity_path, paths)
     skills = RuntimeSkillLoader(settings.harness_skills_dir)
 
-    registry = ToolRegistry()
+    registry = ToolRegistry(default_timeout_seconds=settings.agent_max_tool_runtime_seconds)
     registry.register(FilesystemReadTool(paths))
     registry.register(FilesystemListTool(paths))
     registry.register(FilesystemWriteTool(paths))
