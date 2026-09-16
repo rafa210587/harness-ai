@@ -1,6 +1,8 @@
+import asyncio
 from pathlib import Path
 from typing import Any, ClassVar
 
+import pytest
 from pydantic import BaseModel
 
 from harness.hooks import HookDispatcher, PermissionHook
@@ -29,6 +31,21 @@ class FakeProvider(LLMProvider):
     ) -> LLMResponse:
         self.calls.append([message.model_copy(deep=True) for message in messages])
         return self._responses.pop(0)
+
+
+class BlockingProvider(LLMProvider):
+    def __init__(self) -> None:
+        self.started = asyncio.Event()
+
+    async def complete(
+        self,
+        messages: list[Message],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> LLMResponse:
+        del messages, tools
+        self.started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
 
 
 class DangerousArguments(BaseModel):
@@ -94,6 +111,31 @@ async def test_agent_loop_persists_llm_usage(tmp_path: Path) -> None:
         "cache_hit_tokens": None,
         "cache_miss_tokens": None,
     }
+
+
+async def test_agent_loop_persists_cancellation_and_cleans_resources(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "harness.db")
+    provider = BlockingProvider()
+    registry = ToolRegistry()
+    cleaned: list[bool] = []
+
+    async def cleanup() -> None:
+        cleaned.append(True)
+
+    registry.register_cleanup(cleanup)
+    loop = AgentLoop(provider, registry, store=store)
+    task = asyncio.create_task(loop.run("Wait forever"))
+    await provider.started.wait()
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    sessions = await store.list_sessions()
+    assert len(sessions) == 1
+    assert sessions[0].status == AgentStatus.CANCELLED.value
+    assert sessions[0].reason == "Run cancelled"
+    assert cleaned == [True]
 
 
 async def test_agent_loop_blocks_dangerous_tool_without_approval() -> None:
