@@ -12,6 +12,13 @@ async def test_sqlite_store_persists_session_message_and_tool_call(tmp_path: Pat
     await store.initialize()
     await store.create_session("s1", "test task")
     await store.add_message("s1", Message(role="user", content="hello"))
+    await store.add_message(
+        "s1",
+        Message(
+            role="assistant",
+            tool_calls=[ToolCall(id="call-1", name="filesystem_list", arguments={"path": "."})],
+        ),
+    )
     await store.add_tool_call(
         "s1",
         ToolCall(id="call-1", name="filesystem_list", arguments={"path": "."}),
@@ -30,7 +37,7 @@ async def test_sqlite_store_persists_session_message_and_tool_call(tmp_path: Pat
         ).fetchone()[0]
 
     assert session == ("test task", "completed")
-    assert message_count == 1
+    assert message_count == 2
     assert tool_count == 1
 
     loaded = await store.get_session("s1")
@@ -41,7 +48,29 @@ async def test_sqlite_store_persists_session_message_and_tool_call(tmp_path: Pat
     sessions = await store.list_sessions()
     assert [item.id for item in sessions] == ["s1"]
 
+    messages = await store.list_messages("s1")
+    assert [message.role for message in messages] == ["user", "assistant"]
+    assert messages[1].tool_calls[0].name == "filesystem_list"
+
     events = await store.list_events("s1")
     assert len(events) == 1
     assert events[0].event_type == "TEST_EVENT"
     assert events[0].payload == {"value": 1}
+
+
+async def test_sqlite_store_persists_and_decides_approval(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "harness.db")
+    await store.initialize()
+    await store.create_session("s1", "dangerous task")
+    call = ToolCall(id="call-1", name="shell_run", arguments={"command": "echo hi"})
+
+    await store.create_approval("s1", call, "approval required")
+    pending = await store.get_pending_approval("s1")
+
+    assert pending is not None
+    assert pending.call_id == "call-1"
+    assert pending.tool_call() == call
+
+    await store.decide_approval(pending.id, True)
+
+    assert await store.get_pending_approval("s1") is None
