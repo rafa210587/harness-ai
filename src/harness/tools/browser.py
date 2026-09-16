@@ -5,6 +5,7 @@ from typing import ClassVar, Protocol
 
 from pydantic import BaseModel, Field, HttpUrl
 
+from harness.browser.security import ensure_public_http_url
 from harness.tools.base import EmptyArguments, Tool, ToolResult, ToolRisk
 from harness.tools.filesystem import WorkspacePaths
 
@@ -46,7 +47,7 @@ class ScreenshotArguments(BaseModel):
 
 class BrowserNavigateTool(Tool):
     name: ClassVar[str] = "browser_navigate"
-    description: ClassVar[str] = "Navigate Chromium to an HTTP or HTTPS URL."
+    description: ClassVar[str] = "Navigate Chromium to a public HTTP or HTTPS URL."
     risk: ClassVar[ToolRisk] = ToolRisk.READ
     arguments_model: ClassVar[type[BaseModel]] = NavigateArguments
 
@@ -55,7 +56,9 @@ class BrowserNavigateTool(Tool):
 
     async def execute(self, arguments: BaseModel) -> ToolResult:
         args = NavigateArguments.model_validate(arguments.model_dump())
-        return ToolResult.ok(await self._controller.navigate(str(args.url)))
+        url = str(args.url)
+        ensure_public_http_url(url)
+        return ToolResult.ok(await self._controller.navigate(url))
 
 
 class BrowserReadPageTool(Tool):
