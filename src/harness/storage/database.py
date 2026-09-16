@@ -11,6 +11,8 @@ from pydantic import BaseModel
 from harness.llm import Message, ToolCall
 from harness.tools.base import ToolResult
 
+_SCHEMA_VERSION = 1
+
 
 class SessionRecord(BaseModel):
     id: str
@@ -63,6 +65,11 @@ class SQLiteStore:
         async with aiosqlite.connect(self._path) as db:
             await db.executescript(
                 """
+                CREATE TABLE IF NOT EXISTS schema_meta (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS sessions (
                     id TEXT PRIMARY KEY,
                     task TEXT NOT NULL,
@@ -126,9 +133,51 @@ class SQLiteStore:
                     created_at TEXT NOT NULL,
                     FOREIGN KEY(session_id) REFERENCES sessions(id)
                 );
+
+                CREATE INDEX IF NOT EXISTS idx_sessions_updated_at
+                    ON sessions(updated_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_messages_session
+                    ON messages(session_id, id);
+                CREATE INDEX IF NOT EXISTS idx_tool_calls_session
+                    ON tool_calls(session_id, id);
+                CREATE INDEX IF NOT EXISTS idx_approvals_session_status
+                    ON approvals(session_id, status, id);
+                CREATE INDEX IF NOT EXISTS idx_events_session
+                    ON events(session_id, id);
+                CREATE INDEX IF NOT EXISTS idx_artifacts_session
+                    ON artifacts(session_id, created_at, id);
                 """
             )
+            await self._ensure_schema_version(db)
             await db.commit()
+
+    async def schema_version(self) -> int:
+        async with aiosqlite.connect(self._path) as db:
+            cursor = await db.execute(
+                "SELECT value FROM schema_meta WHERE key = 'schema_version'"
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            raise RuntimeError("Database schema version is not initialized")
+        return int(row[0])
+
+    async def _ensure_schema_version(self, db: aiosqlite.Connection) -> None:
+        cursor = await db.execute(
+            "SELECT value FROM schema_meta WHERE key = 'schema_version'"
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            await db.execute(
+                "INSERT INTO schema_meta(key, value) VALUES ('schema_version', ?)",
+                (str(_SCHEMA_VERSION),),
+            )
+            return
+
+        found = int(row[0])
+        if found != _SCHEMA_VERSION:
+            raise RuntimeError(
+                f"Unsupported database schema version {found}; expected {_SCHEMA_VERSION}"
+            )
 
     async def create_session(self, session_id: str, task: str) -> None:
         now = _utc_now()
