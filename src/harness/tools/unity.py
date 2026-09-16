@@ -48,7 +48,9 @@ class UnityProjectInfoTool(Tool):
 
 class UnityExecuteEditorScriptTool(Tool):
     name: ClassVar[str] = "unity_execute_editor_script"
-    description: ClassVar[str] = "Execute inspectable generated C# inside the Unity Editor in batch mode."
+    description: ClassVar[str] = (
+        "Execute inspectable generated C# inside the Unity Editor in batch mode."
+    )
     risk: ClassVar[ToolRisk] = ToolRisk.DANGEROUS
     arguments_model: ClassVar[type[BaseModel]] = UnityExecuteArguments
 
