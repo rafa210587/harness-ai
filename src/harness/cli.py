@@ -13,6 +13,7 @@ from rich.table import Table
 
 from harness import __version__
 from harness.config import load_settings
+from harness.evals import EvalRunner, load_eval_scenarios
 from harness.hooks import BeforeToolEvent
 from harness.llm import LLMProviderError
 from harness.runtime import AgentRunResult, AgentStatus, build_agent_loop, build_tool_registry
@@ -157,6 +158,60 @@ def resume_command(session_id: str) -> None:
         _render_run_result(result)
 
     asyncio.run(resume_agent())
+
+
+@app.command("eval")
+def eval_command(
+    scenarios_file: Path,
+    json_out: Path | None = typer.Option(None, "--json-out"),
+) -> None:
+    """Run a YAML eval suite with the configured harness."""
+    settings = load_settings()
+
+    async def run_evals() -> None:
+        try:
+            scenarios = load_eval_scenarios(scenarios_file)
+            store = SQLiteStore(settings.harness_data_dir / "harness.db")
+            await store.initialize()
+            runner = EvalRunner(
+                lambda _scenario: build_agent_loop(settings),
+                store=store,
+            )
+            report = await runner.run(scenarios)
+        except (ValueError, FileNotFoundError, LLMProviderError) as exc:
+            console.print(f"[red]Eval failed:[/] {exc}")
+            raise typer.Exit(code=1) from exc
+
+        table = Table(title="Harness eval")
+        table.add_column("Scenario")
+        table.add_column("Result")
+        table.add_column("Status")
+        table.add_column("Steps")
+        table.add_column("Tool errors")
+        table.add_column("Verification failures")
+        for case in report.cases:
+            table.add_row(
+                case.name,
+                "PASS" if case.passed else "FAIL",
+                case.status.value,
+                str(case.steps),
+                str(case.tool_errors),
+                str(case.verification_failures),
+            )
+        console.print(table)
+        console.print(
+            f"Passed {report.passed}/{report.total} "
+            f"({report.success_rate:.1%}); average steps: {report.average_steps:.2f}"
+        )
+
+        if json_out is not None:
+            json_out.parent.mkdir(parents=True, exist_ok=True)
+            json_out.write_text(report.model_dump_json(indent=2), encoding="utf-8")
+
+        if report.passed != report.total:
+            raise typer.Exit(code=1)
+
+    asyncio.run(run_evals())
 
 
 @app.command()
