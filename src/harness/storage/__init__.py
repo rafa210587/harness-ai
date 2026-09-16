@@ -1,3 +1,3 @@
-from harness.storage.database import SQLiteStore
+from harness.storage.database import EventRecord, SessionRecord, SQLiteStore
 
-__all__ = ["SQLiteStore"]
+__all__ = ["EventRecord", "SessionRecord", "SQLiteStore"]
