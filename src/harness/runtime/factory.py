@@ -10,6 +10,7 @@ from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
 from harness.runtime.context import LLMContextCompactor
 from harness.runtime.prompts import DEFAULT_AGENT_SYSTEM_PROMPT
 from harness.runtime.verification import LatestImageVisionVerifier, RunVerifier
+from harness.security import SecretRedactor
 from harness.skills import RuntimeSkillLoader
 from harness.storage import SQLiteStore
 from harness.tools import (
@@ -58,8 +59,16 @@ def build_tool_registry(
     blender = BlenderController(settings.blender_path, paths)
     unity = UnityController(settings.unity_path, paths)
     skills = RuntimeSkillLoader(settings.harness_skills_dir)
+    secrets = (
+        [settings.deepseek_api_key.get_secret_value()]
+        if settings.deepseek_api_key is not None
+        else []
+    )
 
-    registry = ToolRegistry(default_timeout_seconds=settings.agent_max_tool_runtime_seconds)
+    registry = ToolRegistry(
+        default_timeout_seconds=settings.agent_max_tool_runtime_seconds,
+        redactor=SecretRedactor(secrets),
+    )
     registry.register_cleanup(browser.close)
     registry.register(FilesystemReadTool(paths))
     registry.register(FilesystemListTool(paths))
