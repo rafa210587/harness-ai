@@ -1,218 +1,130 @@
-# Skills and Hooks Plan
+# Skills and Hooks
 
-> This document distinguishes three mechanisms that sound similar but solve different problems:
->
-> 1. coding-agent skills;
-> 2. development hooks;
-> 3. Local AI Harness runtime hooks.
-
-## 1. Coding-agent skills
-
-A skill is a reusable procedural playbook.
-
-Use a skill for repeatable engineering work that would otherwise require pasting the same checklist into a coding agent.
-
-Project skills live under:
+This repository uses three different mechanisms:
 
 ```text
-.claude/skills/<skill-name>/SKILL.md
+skills            repeatable engineering procedures
+development hooks safeguards around coding-agent/Git activity
+runtime hooks     deterministic product behavior around harness events
 ```
 
-Claude Code can discover these directly. Other coding agents should be instructed by `AGENTS.md` to read the same files as repository context.
+Do not mix them.
 
-Do not place basic always-on project facts in skills. Those belong in `AGENTS.md`.
+## 1. Coding-agent workflow skills
 
----
+Project skills live under `.claude/skills/<name>/SKILL.md`.
 
-## 2. Initial skill set
-
-### `architecture-change`
-
-Use when changing:
+The default feature flow is:
 
 ```text
-agent loop
-tool contract
-provider contract
-session model
-hooks
-storage
-approval model
-module boundaries
+small  -> inspect -> change -> test
+medium -> refine -> SPEC -> TASKS -> implement -> simplify -> review
+large  -> refine -> SPEC -> PLAN -> TASKS -> implement -> simplify -> review
 ```
 
-Success criteria:
+Workflow skills:
 
-- architecture read first;
-- impact identified;
-- smallest viable change;
-- ADR/doc updated when needed;
-- no unnecessary framework introduced.
+| Skill | Purpose |
+|---|---|
+| `feature-workflow` | Classify change and choose minimum process. |
+| `refine-feature` | Turn an ambiguous request into bounded scope. |
+| `spec-feature` | Define behavior, constraints and acceptance criteria. |
+| `plan-feature` | Produce concise PLAN/TASKS when needed. |
+| `implement-feature` | Execute the approved spec/tasks. |
+| `simplify-change` | Remove accidental complexity without changing behavior. |
+| `review-change` | Independent findings-only review pass. |
+| `concise-docs` | Prevent redundant or temporary permanent documentation. |
 
-### `add-tool`
+Temporary artifacts belong under `.work/<feature>/` and are ignored by Git.
 
-Use whenever a new LLM-visible capability is added.
-
-Required workflow:
+Typical large feature:
 
 ```text
-define contract
-→ define risk
-→ implement
-→ normalize result/errors
-→ register
-→ unit test
-→ integration test if possible
-→ document
+.work/<feature>/
+├── REFINEMENT.md
+├── SPEC.md
+├── PLAN.md
+└── TASKS.md
 ```
 
-### `add-llm-provider`
+Medium features normally need only `SPEC.md` and `TASKS.md`. Small changes need none.
 
-Use for new model providers.
+## 2. Technical skills
 
-Required workflow:
+Technical skills constrain implementation in specific areas:
+
+| Skill | Scope |
+|---|---|
+| `architecture-change` | Module boundaries, contracts and architecture decisions. |
+| `add-tool` | New LLM-visible Tool contract/registration/tests. |
+| `add-llm-provider` | Provider auth, mapping, tool calls, normalization. |
+| `browser-integration` | Playwright/browser safety and semantics. |
+| `blender-integration` | Blender Python/CLI integration. |
+| `unity-integration` | Unity CLI/Editor integration. |
+| `security-review` | Trust boundaries, side effects, secrets and approvals. |
+| `test-change` | Select and execute the correct verification scope. |
+
+Workflow and technical skills can be combined. Example:
 
 ```text
-configuration
-→ auth
-→ request mapping
-→ tool mapping
-→ response/tool-call normalization
-→ error normalization
-→ tests
+feature-workflow
+-> spec-feature
+-> plan-feature
+-> add-tool
+-> implement-feature
+-> security-review
+-> simplify-change
+-> review-change
 ```
 
-### `browser-integration`
+## 3. Why skills before multiple agents
 
-Rules:
+The project does not create separate Architect/Implementer/Reviewer agents yet.
 
-```text
-semantic locator > coordinates
-browser API > desktop automation
-read side effect classification is mandatory
-persistent authenticated profile must be explicit
-```
+Reasons:
 
-### `blender-integration`
+- less duplicated context;
+- fewer handoff errors;
+- lower orchestration complexity;
+- easier evaluation of whether specialization actually helps.
 
-Rules:
+Skills define the roles now. Independent subagents can be introduced later if measured results justify them.
 
-```text
-Python API > CLI > local bridge > GUI automation
-generated scripts are inspectable artifacts
-```
-
-### `unity-integration`
-
-Rules:
-
-```text
-CLI/Editor API > local bridge > GUI automation
-keep generated Editor-only code isolated
-```
-
-### `security-review`
-
-Review:
-
-```text
-commands
-paths
-secrets
-network destinations
-browser side effects
-privilege
-approval bypasses
-tool risk metadata
-plugin/MCP boundaries
-```
-
-### `test-change`
-
-Select the correct test scope instead of running everything blindly.
-
----
-
-## 3. Future runtime skills
-
-Our own harness may later support:
-
-```text
-skills/<name>/SKILL.md
-```
-
-Candidate runtime skills:
-
-```text
-create-blender-prop
-import-asset-to-unity
-inspect-unity-scene
-browser-research
-debug-unity-console
-generate-texture
-verify-game-object
-```
-
-Do not implement the skill loader in the first milestone.
-
-The first milestone only needs:
-
-```text
-model
-→ tools
-→ observations
-→ loop
-```
-
----
+The review pass is logically independent even when executed by the same coding system: while reviewing, it must not modify code.
 
 ## 4. Development hooks
 
-Development hooks act around the coding workflow.
+Development hooks are safeguards for repository work.
 
-Recommended initial Claude Code hooks:
-
-```text
-PreToolUse  → guard dangerous commands/writes
-PostToolUse → run targeted Python formatting/lint after edits
-Stop        → run a small final verification
-```
-
-Recommended Git hooks:
+Current Claude Code hooks:
 
 ```text
-pre-commit → formatting + lint + file hygiene
-pre-push   → test + type-check
+PreToolUse  -> .claude/hooks/guard_destructive.py
+PostToolUse -> .claude/hooks/post_python_edit.py
+Stop        -> .claude/hooks/verify_on_stop.py
 ```
 
-These are safeguards, not architecture.
+Git/pre-commit handles fast formatting/lint/file-hygiene checks.
 
-The repository must remain buildable when somebody uses a coding agent that does not support these hooks.
-
----
+These hooks are convenience and enforcement around development. Repository correctness must not depend on a specific coding assistant supporting them.
 
 ## 5. Runtime hooks
 
-Runtime hooks belong to `src/harness/hooks/`.
+Runtime hooks belong to `src/harness/hooks/` and are part of the product.
 
-Initial event lifecycle:
+Initial lifecycle:
 
 ```text
 SESSION_START
-
 BEFORE_LLM_REQUEST
 AFTER_LLM_RESPONSE
 LLM_ERROR
-
 BEFORE_TOOL
 AFTER_TOOL
 TOOL_ERROR
-
 BEFORE_APPROVAL
 AFTER_APPROVAL
-
 ARTIFACT_CREATED
-
 SESSION_END
 ```
 
@@ -224,202 +136,36 @@ AuditHook
 ArtifactHook
 ```
 
-Potential later hooks:
+A permission hook can return:
 
 ```text
-RedactionHook
-CostHook
-TelemetryHook
-NotificationHook
-PolicyHook
+allow
+deny
+require_approval
 ```
 
----
-
-## 6. Tool execution lifecycle
-
-Target:
+Decision precedence:
 
 ```text
-DeepSeek requests tool
-        │
-        ▼
-Tool Registry resolves tool
-        │
-        ▼
-BEFORE_TOOL hooks
-        │
-        ├─ deny ──────────────► ToolResult denied
-        │
-        ├─ require approval ──► approval flow
-        │
-        └─ allow
-        │
-        ▼
-tool.execute()
-        │
-        ├─ success
-        │    ▼
-        │  AFTER_TOOL hooks
-        │
-        └─ failure
-             ▼
-           TOOL_ERROR hooks
-        │
-        ▼
-normalized ToolResult
-        │
-        ▼
-DeepSeek continues
+deny > require_approval > allow
 ```
 
-The hook system should not call the LLM by itself in the MVP.
+Security policy belongs in deterministic runtime code/configuration, not only in prompts.
 
----
-
-## 7. Hook contract
-
-Example:
-
-```python
-from dataclasses import dataclass
-from enum import StrEnum
-from typing import Any
-
-
-class HookAction(StrEnum):
-    ALLOW = "allow"
-    DENY = "deny"
-    REQUIRE_APPROVAL = "require_approval"
-
-
-@dataclass(frozen=True)
-class HookDecision:
-    action: HookAction
-    reason: str | None = None
-
-
-@dataclass(frozen=True)
-class BeforeToolEvent:
-    session_id: str
-    tool_name: str
-    arguments: dict[str, Any]
-    risk: str
-```
-
-The dispatcher combines decisions conservatively:
+## 6. Skills vs tools vs hooks
 
 ```text
-DENY wins
-then REQUIRE_APPROVAL
-then ALLOW
+Skill: how should a repeatable procedure be performed?
+Tool:  what concrete capability can the model invoke?
+Hook:  what deterministic behavior runs around an event?
 ```
-
-This keeps the security behavior deterministic.
-
----
-
-## 8. Initial permission hook
-
-Example policy:
-
-```text
-filesystem.read        auto
-filesystem.list        auto
-filesystem.write       auto inside workspace
-filesystem.delete      approval
-
-shell.run              auto for normal commands
-shell elevated         approval
-dangerous commands     deny or approval
-
-browser.navigate       auto
-browser.read           auto
-browser.submit         approval
-browser.purchase       deny
-
-blender changes        auto within configured project
-unity changes          auto within configured project
-
-git commit             auto/configurable
-git push               approval
-```
-
-Configuration belongs in:
-
-```text
-config/permissions.yaml
-```
-
-Policy belongs in code + configuration, not in an LLM prompt.
-
----
-
-## 9. Why hooks instead of prompt rules for safety
-
-Prompt instructions are probabilistic.
-
-Permission checks must be deterministic.
-
-The model may decide:
-
-```text
-"I should not delete this"
-```
-
-but the runtime must independently decide whether:
-
-```text
-filesystem.delete(...)
-```
-
-is permitted.
-
-Therefore:
-
-```text
-prompt = behavior guidance
-hook/policy = enforcement
-```
-
----
-
-## 10. Skills vs tools vs hooks
-
-Use this test:
-
-### Skill
-
-"How should the agent perform this repeatable procedure?"
 
 Example:
 
 ```text
-How to create and validate a Blender game prop.
+Skill -> create and validate a Blender prop
+Tool  -> blender.execute_python
+Hook  -> require approval before filesystem.delete
 ```
 
-### Tool
-
-"What concrete capability can the model invoke?"
-
-Example:
-
-```text
-blender.execute_python
-```
-
-### Hook
-
-"What deterministic behavior runs around a lifecycle event?"
-
-Example:
-
-```text
-Require approval before filesystem.delete.
-```
-
-Do not implement procedural skills as hundreds of Python branches.
-
-Do not implement security policy only as a skill.
-
-Do not expose every internal hook as an LLM tool.
+Runtime procedural skills under `skills/` are a future harness capability and are not part of the first MVP milestone.
