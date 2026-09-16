@@ -9,7 +9,7 @@ import aiosqlite
 from pydantic import BaseModel
 
 from harness.llm import Message, ToolCall
-from harness.tools import ToolResult
+from harness.tools.base import ToolResult
 
 
 class SessionRecord(BaseModel):
