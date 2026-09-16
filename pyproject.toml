@@ -1,0 +1,51 @@
+[project]
+name = "harness-ai"
+version = "0.1.0"
+description = "Local AI harness for tool-driven computer workflows."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "aiosqlite",
+    "httpx",
+    "openai",
+    "playwright",
+    "pydantic",
+    "pydantic-settings",
+    "pyyaml",
+    "rich",
+    "typer",
+]
+
+[project.scripts]
+harness = "harness.cli:app"
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "pre-commit",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "ruff",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "blender: requires a local Blender installation",
+    "unity: requires a local Unity installation",
+    "browser_external: uses external web resources",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
