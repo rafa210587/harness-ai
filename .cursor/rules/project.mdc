@@ -1,0 +1,10 @@
+---
+description: Core project rules for harness-ai
+alwaysApply: true
+---
+
+Read and follow the root `AGENTS.md` before changing this repository.
+
+Use `ARCHITECTURE.md` for architecture decisions, `REPOSITORY.md` for module boundaries and repository conventions, and `SETUP.md` for environment/dependency requirements.
+
+Do not duplicate those documents here. Prefer the smallest vertical change that preserves the documented architecture.
