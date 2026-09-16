@@ -1,44 +1,40 @@
 # Repository Design
 
-> Status: proposed repository layout for the first implementation of the Local AI Harness.
->
-> Related: `ARCHITECTURE.md`, `SETUP.md`, `AGENTS.md`
+> Repository structure and engineering workflow. Architecture lives in `ARCHITECTURE.md`; setup lives in `SETUP.md`.
 
 ## 1. Goal
 
-Keep the repository small enough that one engineer and one coding agent can understand the whole runtime, while leaving clear extension points for new LLM providers, tools, applications, skills and hooks.
+Keep the MVP understandable by one engineer and one coding agent.
 
-The MVP is a local Python application with:
-
-- DeepSeek as the first LLM provider.
-- One agent loop.
-- A tool registry.
-- Filesystem and shell tools.
-- Browser automation through Playwright.
-- Blender automation through CLI + Python.
-- Unity automation through CLI + Editor scripts.
-- SQLite persistence.
-- Human approval gates for risky operations.
-- Structured events and artifacts.
-
-The repository must not start as a framework. Every abstraction needs a concrete use in the MVP.
-
----
-
-## 2. Repository layout
+Core stack:
 
 ```text
-local-ai-harness/
-├── README.md
+Python 3.12 + uv
+DeepSeek provider
+single agent loop
+Tool Registry
+SQLite
+Playwright
+Blender CLI/Python
+Unity CLI/Editor scripts
+```
+
+Do not turn the repository into a framework before concrete requirements require it.
+
+## 2. Layout
+
+```text
+harness-ai/
 ├── ARCHITECTURE.md
 ├── REPOSITORY.md
 ├── SETUP.md
 ├── AGENTS.md
 ├── CLAUDE.md
+├── SKILLS_HOOKS.md
+├── README.md
 ├── CHANGELOG.md
-│
 ├── pyproject.toml
-├── uv.lock
+├── uv.lock                 # generated/resolved by uv
 ├── .python-version
 ├── .env.example
 ├── .gitignore
@@ -49,522 +45,169 @@ local-ai-harness/
 │   ├── models.example.yaml
 │   └── permissions.example.yaml
 │
-├── src/
-│   └── harness/
-│       ├── __init__.py
-│       ├── cli.py
-│       │
-│       ├── runtime/
-│       │   ├── agent_loop.py
-│       │   ├── context.py
-│       │   ├── session.py
-│       │   ├── approvals.py
-│       │   └── limits.py
-│       │
-│       ├── llm/
-│       │   ├── base.py
-│       │   └── deepseek.py
-│       │
-│       ├── tools/
-│       │   ├── base.py
-│       │   ├── registry.py
-│       │   ├── filesystem.py
-│       │   ├── shell.py
-│       │   ├── screenshot.py
-│       │   ├── browser.py
-│       │   ├── blender.py
-│       │   ├── unity.py
-│       │   └── image.py
-│       │
-│       ├── browser/
-│       │   └── playwright_controller.py
-│       │
-│       ├── blender/
-│       │   ├── controller.py
-│       │   └── scripts/
-│       │
-│       ├── unity/
-│       │   ├── controller.py
-│       │   └── editor_templates/
-│       │
-│       ├── images/
-│       │   ├── base.py
-│       │   ├── interactive_chatgpt.py
-│       │   └── providers/
-│       │
-│       ├── hooks/
-│       │   ├── base.py
-│       │   ├── dispatcher.py
-│       │   └── builtin/
-│       │       ├── audit.py
-│       │       ├── permissions.py
-│       │       └── artifacts.py
-│       │
-│       ├── storage/
-│       │   ├── database.py
-│       │   ├── repositories.py
-│       │   └── artifacts.py
-│       │
-│       └── observability/
-│           ├── events.py
-│           └── logger.py
-│
-├── skills/
-│   ├── README.md
-│   └── _examples/
+├── src/harness/
+│   ├── cli.py
+│   ├── runtime/
+│   ├── llm/
+│   ├── tools/
+│   ├── browser/
+│   ├── blender/
+│   ├── unity/
+│   ├── images/
+│   ├── hooks/
+│   ├── storage/
+│   └── observability/
 │
 ├── tests/
 │   ├── unit/
-│   ├── integration/
 │   ├── contract/
+│   ├── integration/
 │   └── fixtures/
 │
-├── scripts/
-│   ├── doctor.py
-│   ├── bootstrap.py
-│   └── sync_agent_config.py
-│
 ├── .claude/
-│   ├── settings.example.json
+│   ├── settings.json
 │   ├── hooks/
-│   │   ├── guard_destructive.py
-│   │   ├── post_python_edit.py
-│   │   └── verify_on_stop.py
 │   └── skills/
-│       ├── architecture-change/
-│       │   └── SKILL.md
-│       ├── add-tool/
-│       │   └── SKILL.md
-│       ├── add-llm-provider/
-│       │   └── SKILL.md
-│       ├── browser-integration/
-│       │   └── SKILL.md
-│       ├── blender-integration/
-│       │   └── SKILL.md
-│       ├── unity-integration/
-│       │   └── SKILL.md
-│       ├── security-review/
-│       │   └── SKILL.md
-│       └── test-change/
-│           └── SKILL.md
 │
-├── .cursor/
-│   └── rules/
-│       └── project.mdc
-│
-├── workspace/
-│   └── .gitkeep
-│
-└── data/
-    └── .gitkeep
+├── .cursor/rules/
+├── skills/                 # future runtime skills for the harness itself
+├── scripts/
+├── workspace/              # local runtime state, ignored except .gitkeep
+└── data/                   # local runtime state, ignored except .gitkeep
 ```
 
-`workspace/` and `data/` are local runtime directories and must not contain committed runtime state.
+Temporary feature artifacts live in `.work/` and are fully ignored by Git.
 
----
-
-## 3. Source-of-truth rules
-
-We will not maintain three different architecture descriptions for Codex, Claude Code and Cursor.
-
-The hierarchy is:
+## 3. Sources of truth
 
 ```text
-ARCHITECTURE.md
-      │
-      ├── technical architecture and ADRs
-      │
-REPOSITORY.md
-      │
-      ├── repository boundaries and development structure
-      │
-AGENTS.md
-      │
-      ├── short mandatory engineering instructions
-      │
-.claude/skills/*
-      │
-      └── procedural playbooks loaded only when relevant
+ARCHITECTURE.md  lasting architecture and ADRs
+REPOSITORY.md    repository boundaries and workflow
+SETUP.md         environment/dependencies/setup
+AGENTS.md        mandatory coding-agent instructions
+SKILLS_HOOKS.md  skill/hook model and catalog
+.claude/skills/  procedural playbooks
 ```
 
-`AGENTS.md` is the main cross-agent instruction document.
+Do not duplicate the same detailed rule across files.
 
-`CLAUDE.md` should be a very small compatibility file telling Claude Code to read and follow `AGENTS.md`.
+## 4. Feature workflow
 
-Cursor can also read `AGENTS.md`; `.cursor/rules/` should only contain Cursor-specific scoping if we later need it.
+Classify changes before implementation.
 
-Skills are not a replacement for architecture documentation. Skills are procedures.
+### Small
 
----
-
-## 4. Build-time skills
-
-These skills exist to help coding agents build this repository consistently.
-
-### 4.1 `architecture-change`
-
-Use when a change affects module boundaries, execution flow, persistence, security model, provider model, tool contract or public interfaces.
-
-The skill must force the agent to:
-
-1. Read `ARCHITECTURE.md`.
-2. Identify which ADR is affected.
-3. Prefer the smallest compatible change.
-4. Avoid introducing infrastructure without a concrete MVP requirement.
-5. Update architecture documentation if a real architectural decision changed.
-6. Run relevant tests.
-
-### 4.2 `add-tool`
-
-Use whenever a new harness tool is created.
-
-The skill should require:
+Examples: typo, local bug, simple config/message/timeout change.
 
 ```text
-Tool schema
-→ validation
-→ risk classification
-→ implementation
-→ deterministic ToolResult
-→ unit tests
-→ integration test where practical
-→ registry registration
-→ documentation
+inspect -> change -> test
 ```
 
-Every tool must declare:
+No planning artifacts.
 
-```python
-name
-description
-input model/schema
-risk level
-timeout behavior
-execute()
-```
+### Medium
 
-A tool must never bypass the Tool Registry.
-
-### 4.3 `add-llm-provider`
-
-Use for DeepSeek alternatives or future providers.
-
-Required contract:
+Examples: new tool, CLI command, contained provider/integration capability.
 
 ```text
-provider configuration
-authentication
-request translation
-tool schema translation
-response parsing
-tool call parsing
-stream handling
-error normalization
-provider-specific tests
+refine -> SPEC -> TASKS -> implement -> simplify -> review
 ```
 
-Provider-specific behavior must remain inside `src/harness/llm/`.
-
-### 4.4 `browser-integration`
-
-Use when changing Playwright or browser behavior.
-
-The skill should enforce:
-
-- locators before screen coordinates;
-- browser semantic operations before desktop automation;
-- explicit separation between read actions and side-effect actions;
-- persistent profiles only when configured;
-- no credentials committed to repository;
-- screenshots/traces available for failed integration tests.
-
-### 4.5 `blender-integration`
-
-Use for Blender changes.
-
-Priority:
+Temporary files:
 
 ```text
-Blender Python API
-→ Blender CLI/background mode
-→ persistent Blender bridge later
-→ GUI automation only as fallback
+.work/<feature>/SPEC.md
+.work/<feature>/TASKS.md
 ```
 
-Generated Blender scripts must remain inspectable.
+Create `PLAN.md` only when ordering/migration is non-obvious.
 
-### 4.6 `unity-integration`
+### Large
 
-Use for Unity changes.
-
-Priority:
+Examples: agent loop, persistent application bridge, storage/approval architecture, MCP integration.
 
 ```text
-Unity CLI
-→ Editor scripts
-→ local editor bridge later
-→ GUI automation only as fallback
+refine -> SPEC -> PLAN -> TASKS -> implement -> simplify -> review
 ```
 
-Generated C# Editor scripts must remain isolated from normal game/runtime code whenever possible.
-
-### 4.7 `security-review`
-
-Use for changes that affect:
-
-- shell execution;
-- filesystem writes/deletes;
-- browser form submission;
-- secret loading;
-- external network calls;
-- privilege escalation;
-- approvals;
-- plugin/MCP execution.
-
-The skill must inspect trust boundaries and approval behavior, not only conventional code vulnerabilities.
-
-### 4.8 `test-change`
-
-Use before declaring a meaningful feature complete.
-
-The skill should determine the smallest correct test set and run:
+Temporary files:
 
 ```text
-unit tests
-contract tests
-integration tests
-lint
-type checking
+.work/<feature>/REFINEMENT.md
+.work/<feature>/SPEC.md
+.work/<feature>/PLAN.md
+.work/<feature>/TASKS.md
 ```
 
-It should not blindly run expensive external application tests when the change cannot affect them.
+Remove `.work/<feature>/` after completion unless explicitly requested otherwise.
 
----
+Permanent docs change only when a lasting decision changes.
 
-## 5. Product/runtime skills
+## 5. Skills
 
-Do not confuse the coding-agent skills above with skills used by our own harness.
-
-The harness may eventually load reusable procedural skills from:
+Workflow skills:
 
 ```text
-skills/<skill-name>/SKILL.md
+feature-workflow
+refine-feature
+spec-feature
+plan-feature
+implement-feature
+simplify-change
+review-change
+concise-docs
 ```
 
-Examples:
+Technical skills:
 
 ```text
-skills/
-├── create-blender-prop/
-├── import-asset-to-unity/
-├── inspect-unity-scene/
-├── browser-research/
-└── generate-game-texture/
+architecture-change
+add-tool
+add-llm-provider
+browser-integration
+blender-integration
+unity-integration
+security-review
+test-change
 ```
 
-This loader is NOT required for the first vertical slice.
+Use skills as roles/processes first. Do not introduce multi-agent orchestration only to separate architect/implementer/reviewer roles; add real subagents later only if measured results justify the coordination cost.
 
-For MVP phase 1, DeepSeek receives tools directly.
-
-A runtime skill loader should only be introduced when we have repeated procedures that are clearly better represented as reusable instructions than Python orchestration code.
-
----
-
-## 6. Build-time hooks
-
-Build-time hooks are automation around development. They are not part of the runtime hook system.
-
-### 6.1 Git hooks
-
-Use `pre-commit`.
-
-Fast checks on commit:
-
-```text
-ruff format
-ruff check
-basic repository checks
-secret/file-size checks if added later
-```
-
-Heavier checks belong on push or CI:
-
-```text
-pytest
-mypy
-coverage thresholds
-```
-
-Do not put Blender/Unity end-to-end tests in every commit hook.
-
-### 6.2 Claude Code hooks
-
-Initial useful hooks:
-
-#### `PreToolUse`
-
-`guard_destructive.py`
-
-Purpose:
-
-- reject destructive commands outside the repository;
-- reject accidental access to secrets;
-- reject `git reset --hard`, destructive checkout/clean operations, recursive delete and equivalent commands unless explicitly approved;
-- reject writes outside allowed roots.
-
-#### `PostToolUse`
-
-`post_python_edit.py`
-
-Purpose:
-
-- when Python files change, run targeted Ruff checks;
-- do not run the full test suite after every edit.
-
-#### `Stop`
-
-`verify_on_stop.py`
-
-Purpose:
-
-- optionally run a fast repository health check before the coding session is considered complete;
-- report failures to the agent;
-- avoid hiding errors.
-
-These hooks are convenience/guardrails. Repository correctness must not depend exclusively on one coding assistant supporting them.
-
----
-
-## 7. Runtime hooks
-
-Runtime hooks are part of the product.
-
-Use a small event-driven hook dispatcher.
-
-Initial events:
-
-```text
-SESSION_START
-SESSION_END
-
-BEFORE_LLM_REQUEST
-AFTER_LLM_RESPONSE
-LLM_ERROR
-
-BEFORE_TOOL
-AFTER_TOOL
-TOOL_ERROR
-
-BEFORE_APPROVAL
-AFTER_APPROVAL
-
-ARTIFACT_CREATED
-CONTEXT_COMPACTED
-```
-
-Do not allow arbitrary plugin code to mutate everything in the first version.
-
-A hook receives an immutable event object and returns an optional decision/result.
-
-Example:
-
-```python
-@dataclass(frozen=True)
-class BeforeToolEvent:
-    session_id: str
-    tool_name: str
-    arguments: dict[str, object]
-    risk: ToolRisk
-```
-
-A permission hook may return:
-
-```python
-HookDecision(
-    action="allow" | "deny" | "require_approval",
-    reason="..."
-)
-```
-
-The default runtime hooks are:
-
-```text
-permissions
-audit
-artifact tracking
-```
-
-Future hooks may add:
-
-```text
-telemetry
-redaction
-cost accounting
-policy
-notifications
-```
-
----
-
-## 8. Module boundaries
+## 6. Module ownership
 
 ### `runtime/`
 
-Owns orchestration.
+Owns orchestration: session, context, agent loop, limits and approvals.
 
-It can depend on:
+May depend on `llm`, `tools`, `hooks`, `storage`, `observability`.
 
-```text
-llm
-tools
-hooks
-storage
-observability
-```
-
-It must not contain Blender, Unity or Playwright implementation details.
+Must not contain Playwright/Blender/Unity implementation details.
 
 ### `llm/`
 
-Owns communication with model providers.
-
-It must return normalized harness objects.
-
-No tool implementation belongs here.
+Owns provider communication and normalization. Provider-specific types must not leak into runtime.
 
 ### `tools/`
 
-Owns the public tool contracts exposed to the LLM.
+Owns LLM-visible tool contracts and the Tool Registry. Application mechanics delegate to controllers.
 
-Application-specific mechanics may delegate to controllers.
+### `browser/`, `blender/`, `unity/`, `images/`
 
-### `browser/`, `blender/`, `unity/`
-
-Own application integration details.
-
-They do not decide agent behavior.
+Own application/provider-specific mechanics. They do not decide agent behavior.
 
 ### `hooks/`
 
-Owns deterministic interception/event behavior.
-
-Hooks should not become another hidden orchestration framework.
+Owns deterministic runtime interception/decisions. Do not turn hooks into hidden orchestration.
 
 ### `storage/`
 
 Owns SQLite persistence and artifact metadata.
 
-No LLM logic.
-
 ### `observability/`
 
-Owns structured events/logging.
+Owns structured events/logging. Observability failures should not normally terminate sessions.
 
-Observability failures should not normally crash the agent session.
-
----
-
-## 9. Dependency direction
+## 7. Dependency direction
 
 Allowed:
 
@@ -583,61 +226,37 @@ browser / blender / unity / images
 Avoid:
 
 ```text
-browser → runtime
-unity → agent_loop
-storage → tools
-llm → blender
+browser -> runtime
+unity -> agent_loop
+storage -> tools
+llm -> blender
 ```
 
-The application adapters must remain callable without knowing the agent loop.
+## 8. Tool contract
 
----
-
-## 10. Tests
-
-### Unit
-
-Fast and isolated.
-
-Examples:
+Every LLM-visible tool declares:
 
 ```text
-tool schema validation
-permission decisions
-context building
-DeepSeek response parser
-artifact metadata
-SQLite repositories
+name
+description
+input schema
+risk level
+timeout behavior
+execute()
 ```
 
-### Contract
+Every execution path returns normalized `ToolResult` data. Tools never bypass the Tool Registry or permission layer.
 
-Verify interfaces independently of real applications.
-
-Examples:
+## 9. Tests
 
 ```text
-all tools return ToolResult
-all providers return normalized LLMResponse
-all hooks return valid HookDecision
+unit        fast isolated behavior
+contract    provider/tool/hook interface guarantees
+integration real local components such as SQLite/filesystem/Playwright local page
+external    explicitly marked Blender/Unity/external-browser tests
 ```
 
-### Integration
-
-Use real local components when practical.
-
-Examples:
-
-```text
-SQLite
-filesystem sandbox
-subprocess
-Playwright + local test page
-```
-
-### External application integration
-
-Explicitly marked tests:
+External markers:
 
 ```text
 @pytest.mark.blender
@@ -645,13 +264,26 @@ Explicitly marked tests:
 @pytest.mark.browser_external
 ```
 
-These are not part of the default fast suite.
+Do not run expensive external-application tests for unrelated changes.
 
----
+## 10. Definition of done
 
-## 11. Branch and commit policy
+A non-trivial change is done when:
 
-For the first stage:
+1. Acceptance criteria are satisfied.
+2. Relevant tests exist and pass.
+3. Ruff formatting/lint pass.
+4. Mypy passes for affected typed code.
+5. Risk/approval behavior is explicit for new side effects.
+6. Simplification pass is complete.
+7. Review has no unresolved P0/P1 findings.
+8. Permanent docs are updated only if a lasting decision changed.
+9. Temporary `.work/` artifacts are removed.
+10. The completion report states what was and was not verified.
+
+## 11. Git
+
+Initial branch convention:
 
 ```text
 main
@@ -659,134 +291,18 @@ feature/<short-name>
 fix/<short-name>
 ```
 
-A feature should be small enough to review as one coherent vertical change.
+Prefer coherent vertical changes over large speculative scaffolds.
 
-Prefer vertical slices:
-
-```text
-DeepSeek request → parsed response
-```
-
-then:
+## 12. MVP milestones
 
 ```text
-tool call → filesystem tool → result
+M0 bootstrap          CLI/config/logging/tests/pre-commit
+M1 DeepSeek echo      provider + normalized response
+M2 first tools        Tool Registry + filesystem + shell + permissions
+M3 autonomous loop    model -> tool -> observation -> model
+M4 browser            Playwright vertical slice
+M5 Blender            create cube -> render -> artifact
+M6 Unity              import artifact -> refresh -> inspect
 ```
 
-then:
-
-```text
-DeepSeek → tool registry → filesystem
-```
-
-instead of creating 40 empty interfaces before the first task runs.
-
----
-
-## 12. Definition of done for a code change
-
-A normal change is complete when:
-
-1. The implementation works.
-2. Relevant tests exist.
-3. `ruff check` passes.
-4. `ruff format --check` passes.
-5. `mypy` passes for affected typed modules once type checking is enabled.
-6. No secret is committed.
-7. Architecture docs are updated if a decision changed.
-8. New dangerous behavior has an explicit approval/risk decision.
-9. The coding agent reports what it actually verified.
-
----
-
-## 13. First repository milestones
-
-### M0 — bootstrap
-
-Deliver:
-
-```text
-pyproject.toml
-uv.lock
-CLI entrypoint
-configuration loader
-structured logging
-tests running
-pre-commit
-AGENTS.md
-```
-
-### M1 — DeepSeek echo
-
-Deliver:
-
-```text
-DeepSeek provider
-simple request
-stream/non-stream decision
-normalized response
-provider tests
-```
-
-### M2 — first real tool
-
-Deliver:
-
-```text
-Tool base
-Tool Registry
-filesystem.list
-filesystem.read
-shell.run
-permission hook
-```
-
-Target:
-
-```bash
-harness run "List this project's Python files."
-```
-
-### M3 — autonomous tool loop
-
-Target:
-
-```text
-DeepSeek
-→ requests tool
-→ harness validates
-→ tool executes
-→ result returns to DeepSeek
-→ DeepSeek finishes task
-```
-
-This is the first true harness milestone.
-
-### M4 — browser
-
-Playwright vertical slice.
-
-### M5 — Blender
-
-Create cube → render → artifact.
-
-### M6 — Unity
-
-Import artifact → refresh → inspect result.
-
----
-
-## 14. Principle for future growth
-
-Add a framework only when a measured problem requires it.
-
-Before introducing LangGraph, Temporal, Redis, PostgreSQL, a vector database, an MCP gateway or a multi-agent scheduler, document:
-
-```text
-What exact problem exists?
-Why cannot the current loop solve it?
-What failure/metric proves the need?
-What is the smallest dependency that solves it?
-```
-
-This constraint is intentional.
+Before adding LangGraph, Temporal, Redis, PostgreSQL, vector DB, MCP gateway or multi-agent orchestration, document the concrete problem that the current design cannot solve.
