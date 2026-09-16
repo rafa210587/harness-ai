@@ -109,3 +109,63 @@ def test_workspace_paths_reject_symlink_escape(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="escapes workspace"):
         paths.resolve("external/secret.txt")
+
+
+def test_workspace_paths_protect_sensitive_files(tmp_path: Path) -> None:
+    paths = WorkspacePaths(tmp_path)
+
+    for raw_path in (
+        ".env",
+        ".env.local",
+        "nested/.env.production",
+        "id_rsa",
+        "nested/id_ed25519",
+        "certs/client.pem",
+        "certs/client.key",
+        ".ssh/config",
+        ".aws/credentials",
+        "credentials.json",
+        "secrets.json",
+    ):
+        with pytest.raises(ValueError, match="Sensitive workspace path is protected"):
+            paths.resolve(raw_path)
+
+
+@pytest.mark.parametrize("filename", [".env.example", ".env.sample", ".env.template"])
+def test_workspace_paths_allow_safe_env_templates(tmp_path: Path, filename: str) -> None:
+    paths = WorkspacePaths(tmp_path)
+
+    assert paths.resolve(filename) == (tmp_path / filename).resolve()
+
+
+async def test_filesystem_search_skips_sensitive_files(tmp_path: Path) -> None:
+    secret = "super-secret-value"
+    (tmp_path / ".env").write_text(f"DEEPSEEK_API_KEY={secret}\n", encoding="utf-8")
+    (tmp_path / ".env.example").write_text("DEEPSEEK_API_KEY=example\n", encoding="utf-8")
+    (tmp_path / "notes.txt").write_text(f"safe text {secret}\n", encoding="utf-8")
+
+    registry = ToolRegistry()
+    registry.register(FilesystemSearchTool(WorkspacePaths(tmp_path)))
+
+    result = await registry.execute(
+        "filesystem_search",
+        {"path": ".", "query": secret, "glob": "*"},
+    )
+
+    assert result.success is True
+    assert result.output == [{"path": "notes.txt", "line": 1, "text": f"safe text {secret}"}]
+
+
+async def test_filesystem_read_blocks_env_but_allows_example(tmp_path: Path) -> None:
+    (tmp_path / ".env").write_text("SECRET=value\n", encoding="utf-8")
+    (tmp_path / ".env.example").write_text("SECRET=example\n", encoding="utf-8")
+    registry = ToolRegistry()
+    registry.register(FilesystemReadTool(WorkspacePaths(tmp_path)))
+
+    blocked = await registry.execute("filesystem_read", {"path": ".env"})
+    allowed = await registry.execute("filesystem_read", {"path": ".env.example"})
+
+    assert blocked.success is False
+    assert "Sensitive workspace path is protected" in (blocked.error or "")
+    assert allowed.success is True
+    assert allowed.output["content"] == "SECRET=example\n"
