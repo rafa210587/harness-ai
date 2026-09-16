@@ -1,7 +1,12 @@
 from pathlib import Path
 
 from harness.runtime.process import ProcessResult
-from harness.tools import BlenderExecutePythonTool, BlenderRenderTool, UnityProjectInfoTool, WorkspacePaths
+from harness.tools import (
+    BlenderExecutePythonTool,
+    BlenderRenderTool,
+    UnityProjectInfoTool,
+    WorkspacePaths,
+)
 
 
 class FakeBlenderController:
