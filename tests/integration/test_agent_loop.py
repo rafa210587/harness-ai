@@ -29,9 +29,7 @@ async def test_agent_loop_executes_tool_and_returns_final_answer(tmp_path: Path)
     provider = FakeProvider(
         [
             LLMResponse(
-                tool_calls=[
-                    ToolCall(id="call-1", name="filesystem_list", arguments={"path": "."})
-                ],
+                tool_calls=[ToolCall(id="call-1", name="filesystem_list", arguments={"path": "."})],
                 finish_reason="tool_calls",
             ),
             LLMResponse(content="Found hello.txt", finish_reason="stop"),
@@ -54,7 +52,9 @@ async def test_agent_loop_blocks_dangerous_tool_without_approval(tmp_path: Path)
     provider = FakeProvider(
         [
             LLMResponse(
-                tool_calls=[ToolCall(id="call-1", name="shell_run", arguments={"command": "echo hi"})],
+                tool_calls=[
+                    ToolCall(id="call-1", name="shell_run", arguments={"command": "echo hi"})
+                ],
                 finish_reason="tool_calls",
             )
         ]
