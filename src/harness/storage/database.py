@@ -153,18 +153,14 @@ class SQLiteStore:
 
     async def schema_version(self) -> int:
         async with aiosqlite.connect(self._path) as db:
-            cursor = await db.execute(
-                "SELECT value FROM schema_meta WHERE key = 'schema_version'"
-            )
+            cursor = await db.execute("SELECT value FROM schema_meta WHERE key = 'schema_version'")
             row = await cursor.fetchone()
         if row is None:
             raise RuntimeError("Database schema version is not initialized")
         return int(row[0])
 
     async def _ensure_schema_version(self, db: aiosqlite.Connection) -> None:
-        cursor = await db.execute(
-            "SELECT value FROM schema_meta WHERE key = 'schema_version'"
-        )
+        cursor = await db.execute("SELECT value FROM schema_meta WHERE key = 'schema_version'")
         row = await cursor.fetchone()
         if row is None:
             await db.execute(
