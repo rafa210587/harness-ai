@@ -91,9 +91,17 @@ def doctor() -> None:
             "installed" if importlib.util.find_spec("playwright") else "not installed",
         ),
         ("workspace exists", workspace.exists(), str(workspace.resolve())),
-        ("workspace writable", workspace.exists() and os.access(workspace, os.W_OK), str(workspace.resolve())),
+        (
+            "workspace writable",
+            workspace.exists() and os.access(workspace, os.W_OK),
+            str(workspace.resolve()),
+        ),
         ("data directory exists", data_dir.exists(), str(data_dir.resolve())),
-        ("data directory writable", data_dir.exists() and os.access(data_dir, os.W_OK), str(data_dir.resolve())),
+        (
+            "data directory writable",
+            data_dir.exists() and os.access(data_dir, os.W_OK),
+            str(data_dir.resolve()),
+        ),
         (
             "DeepSeek API key",
             settings.deepseek_api_key is not None,
