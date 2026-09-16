@@ -16,3 +16,7 @@ agent:
   max_steps: 50
   max_consecutive_errors: 5
   max_tool_runtime_seconds: 300
+
+context:
+  max_messages: 40
+  keep_recent: 16
