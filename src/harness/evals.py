@@ -28,6 +28,9 @@ class EvalCaseResult(BaseModel):
     duration_ms: int
     tool_errors: int = 0
     verification_failures: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
     reason: str | None = None
 
 
@@ -38,6 +41,9 @@ class EvalReport(BaseModel):
     average_steps: float
     total_tool_errors: int
     total_verification_failures: int
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
     cases: list[EvalCaseResult]
 
 
@@ -82,6 +88,9 @@ class EvalRunner:
             average_steps=(total_steps / total) if total else 0.0,
             total_tool_errors=sum(case.tool_errors for case in cases),
             total_verification_failures=sum(case.verification_failures for case in cases),
+            input_tokens=sum(case.input_tokens for case in cases),
+            output_tokens=sum(case.output_tokens for case in cases),
+            total_tokens=sum(case.total_tokens for case in cases),
             cases=cases,
         )
 
@@ -90,12 +99,24 @@ class EvalRunner:
         result = await self._agent_factory(scenario).run(scenario.task)
         tool_errors = 0
         verification_failures = 0
+        input_tokens = 0
+        output_tokens = 0
+        total_tokens = 0
         if self._store is not None:
             events = await self._store.list_events(result.session_id)
             tool_errors = sum(event.event_type == "TOOL_ERROR" for event in events)
             verification_failures = sum(
                 event.event_type == "VERIFICATION_FAILED" for event in events
             )
+            for event in events:
+                if event.event_type != "LLM_RESPONSE_RECEIVED":
+                    continue
+                usage = event.payload.get("usage")
+                if not isinstance(usage, dict):
+                    continue
+                input_tokens += _int_value(usage.get("input_tokens"))
+                output_tokens += _int_value(usage.get("output_tokens"))
+                total_tokens += _int_value(usage.get("total_tokens"))
 
         passed = result.status is scenario.expected_status
         if scenario.max_steps is not None and result.steps > scenario.max_steps:
@@ -115,5 +136,12 @@ class EvalRunner:
             duration_ms=round((perf_counter() - started) * 1000),
             tool_errors=tool_errors,
             verification_failures=verification_failures,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
             reason=result.reason,
         )
+
+
+def _int_value(value: object) -> int:
+    return value if isinstance(value, int) and not isinstance(value, bool) else 0
