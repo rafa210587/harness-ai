@@ -6,6 +6,14 @@ from harness.config import Settings
 from harness.llm import DeepSeekProvider, LLMProviderError, Message
 
 
+class RateLimitError(RuntimeError):
+    pass
+
+
+class BadRequestError(RuntimeError):
+    pass
+
+
 class FakeCompletions:
     def __init__(self, response) -> None:
         self.response = response
@@ -13,6 +21,8 @@ class FakeCompletions:
 
     async def create(self, **kwargs):
         self.kwargs = kwargs
+        if isinstance(self.response, Exception):
+            raise self.response
         return self.response
 
 
@@ -84,3 +94,27 @@ async def test_provider_rejects_invalid_tool_json() -> None:
 
     with pytest.raises(LLMProviderError, match="invalid JSON"):
         await provider.complete([Message(role="user", content="list files")])
+
+
+async def test_provider_marks_transient_transport_failure_retryable() -> None:
+    provider = DeepSeekProvider(
+        Settings(_env_file=None),
+        client=FakeClient(RateLimitError("slow down")),
+    )
+
+    with pytest.raises(LLMProviderError) as error:
+        await provider.complete([Message(role="user", content="hello")])
+
+    assert error.value.retryable is True
+
+
+async def test_provider_keeps_permanent_failure_non_retryable() -> None:
+    provider = DeepSeekProvider(
+        Settings(_env_file=None),
+        client=FakeClient(BadRequestError("invalid request")),
+    )
+
+    with pytest.raises(LLMProviderError) as error:
+        await provider.complete([Message(role="user", content="hello")])
+
+    assert error.value.retryable is False
