@@ -59,9 +59,12 @@ class Settings(BaseSettings):
     blender_path: Path | None = None
     unity_path: Path | None = None
 
-    agent_max_steps: int = 50
-    agent_max_consecutive_errors: int = 5
-    agent_max_tool_runtime_seconds: int = 300
+    agent_max_steps: int = Field(default=50, ge=1)
+    agent_max_consecutive_errors: int = Field(default=5, ge=1)
+    agent_max_tool_runtime_seconds: int = Field(default=300, ge=1)
+
+    context_max_messages: int = Field(default=40, ge=8)
+    context_keep_recent: int = Field(default=16, ge=4)
 
     permissions: PermissionSettings = Field(default_factory=PermissionSettings)
 
@@ -80,6 +83,8 @@ _ENV_TO_FIELD = {
     "AGENT_MAX_STEPS": "agent_max_steps",
     "AGENT_MAX_CONSECUTIVE_ERRORS": "agent_max_consecutive_errors",
     "AGENT_MAX_TOOL_RUNTIME_SECONDS": "agent_max_tool_runtime_seconds",
+    "CONTEXT_MAX_MESSAGES": "context_max_messages",
+    "CONTEXT_KEEP_RECENT": "context_keep_recent",
 }
 
 
@@ -106,7 +111,10 @@ def load_settings(
         if value not in (None, ""):
             values[field_name] = value
 
-    return Settings(**values)
+    settings = Settings(**values)
+    if settings.context_keep_recent >= settings.context_max_messages:
+        raise ValueError("context_keep_recent must be smaller than context_max_messages")
+    return settings
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -126,6 +134,7 @@ def _harness_values(config: dict[str, Any]) -> dict[str, Any]:
     data = config.get("data") or {}
     browser = config.get("browser") or {}
     agent = config.get("agent") or {}
+    context = config.get("context") or {}
 
     _copy_if_present(values, "harness_workspace", workspace, "root")
     _copy_if_present(values, "harness_data_dir", data, "root")
@@ -134,6 +143,8 @@ def _harness_values(config: dict[str, Any]) -> dict[str, Any]:
     _copy_if_present(values, "agent_max_steps", agent, "max_steps")
     _copy_if_present(values, "agent_max_consecutive_errors", agent, "max_consecutive_errors")
     _copy_if_present(values, "agent_max_tool_runtime_seconds", agent, "max_tool_runtime_seconds")
+    _copy_if_present(values, "context_max_messages", context, "max_messages")
+    _copy_if_present(values, "context_keep_recent", context, "keep_recent")
     return values
 
 
