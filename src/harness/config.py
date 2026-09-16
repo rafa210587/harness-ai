@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     agent_max_steps: int = Field(default=50, ge=1)
     agent_max_consecutive_errors: int = Field(default=5, ge=1)
     agent_max_tool_runtime_seconds: int = Field(default=300, ge=1)
+    agent_llm_timeout_seconds: int = Field(default=120, ge=1)
+    agent_llm_max_attempts: int = Field(default=3, ge=1, le=10)
+    agent_llm_retry_base_seconds: float = Field(default=1.0, ge=0.0, le=60.0)
 
     context_max_messages: int = Field(default=40, ge=8)
     context_keep_recent: int = Field(default=16, ge=4)
@@ -85,6 +88,9 @@ _ENV_TO_FIELD = {
     "AGENT_MAX_STEPS": "agent_max_steps",
     "AGENT_MAX_CONSECUTIVE_ERRORS": "agent_max_consecutive_errors",
     "AGENT_MAX_TOOL_RUNTIME_SECONDS": "agent_max_tool_runtime_seconds",
+    "AGENT_LLM_TIMEOUT_SECONDS": "agent_llm_timeout_seconds",
+    "AGENT_LLM_MAX_ATTEMPTS": "agent_llm_max_attempts",
+    "AGENT_LLM_RETRY_BASE_SECONDS": "agent_llm_retry_base_seconds",
     "CONTEXT_MAX_MESSAGES": "context_max_messages",
     "CONTEXT_KEEP_RECENT": "context_keep_recent",
 }
@@ -147,6 +153,9 @@ def _harness_values(config: dict[str, Any]) -> dict[str, Any]:
     _copy_if_present(values, "agent_max_steps", agent, "max_steps")
     _copy_if_present(values, "agent_max_consecutive_errors", agent, "max_consecutive_errors")
     _copy_if_present(values, "agent_max_tool_runtime_seconds", agent, "max_tool_runtime_seconds")
+    _copy_if_present(values, "agent_llm_timeout_seconds", agent, "llm_timeout_seconds")
+    _copy_if_present(values, "agent_llm_max_attempts", agent, "llm_max_attempts")
+    _copy_if_present(values, "agent_llm_retry_base_seconds", agent, "llm_retry_base_seconds")
     _copy_if_present(values, "context_max_messages", context, "max_messages")
     _copy_if_present(values, "context_keep_recent", context, "keep_recent")
     return values
