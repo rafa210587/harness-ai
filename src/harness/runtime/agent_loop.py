@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from harness.hooks import BeforeToolEvent, HookAction, HookDispatcher
 from harness.llm import LLMProvider, LLMProviderError, Message, ToolCall
+from harness.runtime.verification import RunVerifier, VerificationRequest
 from harness.storage import SQLiteStore
 from harness.tools import ToolRegistry, ToolResult, ToolRisk
 
@@ -40,6 +41,8 @@ class AgentLoop:
         hooks: HookDispatcher | None = None,
         *,
         store: SQLiteStore | None = None,
+        verifier: RunVerifier | None = None,
+        max_verification_retries: int = 2,
         max_steps: int = 50,
         max_consecutive_errors: int = 5,
         approval_handler: ApprovalHandler | None = None,
@@ -48,6 +51,8 @@ class AgentLoop:
         self._tools = tools
         self._hooks = hooks or HookDispatcher()
         self._store = store
+        self._verifier = verifier
+        self._max_verification_retries = max_verification_retries
         self._max_steps = max_steps
         self._max_consecutive_errors = max_consecutive_errors
         self._approval_handler = approval_handler
@@ -78,7 +83,7 @@ class AgentLoop:
             messages,
             Message(role="user", content=task),
         )
-        return await self._continue(current_session_id, messages)
+        return await self._continue(current_session_id, task, messages)
 
     async def resume(self, session_id: str) -> AgentRunResult:
         if self._store is None:
@@ -145,6 +150,7 @@ class AgentLoop:
 
         return await self._continue(
             session_id,
+            session.task,
             messages,
             initial_consecutive_errors=consecutive_errors,
         )
@@ -152,11 +158,13 @@ class AgentLoop:
     async def _continue(
         self,
         session_id: str,
+        task: str,
         messages: list[Message],
         *,
         initial_consecutive_errors: int = 0,
     ) -> AgentRunResult:
         consecutive_errors = initial_consecutive_errors
+        verification_failures = 0
 
         for step in range(1, self._max_steps + 1):
             llm_started = perf_counter()
@@ -198,6 +206,68 @@ class AgentLoop:
                         messages,
                         Message(role="assistant", content=response.content),
                     )
+
+                if self._verifier is not None:
+                    verification_attempt = verification_failures + 1
+                    artifacts = await self._artifact_paths(session_id)
+                    await self._record_event(
+                        session_id,
+                        "VERIFICATION_STARTED",
+                        {
+                            "step": step,
+                            "attempt": verification_attempt,
+                            "artifact_count": len(artifacts),
+                        },
+                    )
+                    verification = await self._verifier.verify(
+                        VerificationRequest(
+                            session_id=session_id,
+                            task=task,
+                            proposed_content=response.content,
+                            artifacts=artifacts,
+                            attempt=verification_attempt,
+                        )
+                    )
+                    await self._record_event(
+                        session_id,
+                        "VERIFICATION_PASSED" if verification.passed else "VERIFICATION_FAILED",
+                        {
+                            "step": step,
+                            "attempt": verification_attempt,
+                            "feedback": verification.feedback,
+                        },
+                    )
+                    if not verification.passed:
+                        verification_failures += 1
+                        if verification_failures > self._max_verification_retries:
+                            reason = (
+                                "Verification failed after "
+                                f"{verification_failures} attempts: {verification.feedback}"
+                            )
+                            result = AgentRunResult(
+                                status=AgentStatus.FAILED,
+                                content=response.content,
+                                steps=step,
+                                session_id=session_id,
+                                reason=reason,
+                            )
+                            await self._finish_session(session_id, result.status, reason)
+                            return result
+
+                        feedback = verification.feedback or "The proposed result was not accepted."
+                        await self._append_message(
+                            session_id,
+                            messages,
+                            Message(
+                                role="system",
+                                content=(
+                                    "Internal verification failed. Continue working on the original task "
+                                    f"and correct the result before finishing. Feedback: {feedback}"
+                                ),
+                            ),
+                        )
+                        continue
+
                 result = AgentRunResult(
                     status=AgentStatus.COMPLETED,
                     content=response.content,
@@ -411,6 +481,19 @@ class AgentLoop:
                     "created_by": tool_name,
                 },
             )
+
+    async def _artifact_paths(self, session_id: str) -> list[str]:
+        if self._store is None:
+            return []
+        events = await self._store.list_events(session_id)
+        paths: list[str] = []
+        for event in events:
+            if event.event_type != "ARTIFACT_CREATED":
+                continue
+            path = event.payload.get("path")
+            if isinstance(path, str) and path not in paths:
+                paths.append(path)
+        return paths
 
     async def _finish_session(
         self,
