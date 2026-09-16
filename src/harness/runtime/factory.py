@@ -16,7 +16,11 @@ from harness.tools import (
     BrowserReadPageTool,
     BrowserScreenshotTool,
     BrowserWaitTool,
+    FilesystemCopyTool,
     FilesystemListTool,
+    FilesystemMkdirTool,
+    FilesystemMoveTool,
+    FilesystemPatchTool,
     FilesystemReadTool,
     FilesystemSearchTool,
     FilesystemWriteTool,
@@ -43,7 +47,11 @@ def build_tool_registry(settings: Settings) -> ToolRegistry:
     registry.register(FilesystemReadTool(paths))
     registry.register(FilesystemListTool(paths))
     registry.register(FilesystemWriteTool(paths))
+    registry.register(FilesystemPatchTool(paths))
     registry.register(FilesystemSearchTool(paths))
+    registry.register(FilesystemMkdirTool(paths))
+    registry.register(FilesystemCopyTool(paths))
+    registry.register(FilesystemMoveTool(paths))
     registry.register(ShellRunTool(paths))
     registry.register(BrowserNavigateTool(browser))
     registry.register(BrowserReadPageTool(browser))
