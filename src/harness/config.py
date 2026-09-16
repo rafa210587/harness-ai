@@ -51,6 +51,7 @@ class Settings(BaseSettings):
 
     harness_data_dir: Path = Path("./data")
     harness_workspace: Path = Path("./workspace")
+    harness_skills_dir: Path = Path("./skills")
     harness_log_level: str = "INFO"
 
     harness_browser_profile: Path = Path("./data/browser-profile")
@@ -75,6 +76,7 @@ _ENV_TO_FIELD = {
     "DEEPSEEK_MODEL": "deepseek_model",
     "HARNESS_DATA_DIR": "harness_data_dir",
     "HARNESS_WORKSPACE": "harness_workspace",
+    "HARNESS_SKILLS_DIR": "harness_skills_dir",
     "HARNESS_LOG_LEVEL": "harness_log_level",
     "HARNESS_BROWSER_PROFILE": "harness_browser_profile",
     "HARNESS_BROWSER_HEADLESS": "harness_browser_headless",
@@ -132,12 +134,14 @@ def _harness_values(config: dict[str, Any]) -> dict[str, Any]:
     values: dict[str, Any] = {}
     workspace = config.get("workspace") or {}
     data = config.get("data") or {}
+    skills = config.get("skills") or {}
     browser = config.get("browser") or {}
     agent = config.get("agent") or {}
     context = config.get("context") or {}
 
     _copy_if_present(values, "harness_workspace", workspace, "root")
     _copy_if_present(values, "harness_data_dir", data, "root")
+    _copy_if_present(values, "harness_skills_dir", skills, "root")
     _copy_if_present(values, "harness_browser_profile", browser, "profile_path")
     _copy_if_present(values, "harness_browser_headless", browser, "headless")
     _copy_if_present(values, "agent_max_steps", agent, "max_steps")
