@@ -5,9 +5,10 @@ from harness.browser import PlaywrightController
 from harness.config import Settings
 from harness.hooks import HookDispatcher, PermissionHook
 from harness.images import ImageProvider
-from harness.llm import DeepSeekProvider, RetryingLLMProvider
+from harness.llm import DeepSeekProvider, RetryingLLMProvider, SystemInstructionLLMProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
 from harness.runtime.context import LLMContextCompactor
+from harness.runtime.prompts import DEFAULT_AGENT_SYSTEM_PROMPT
 from harness.runtime.verification import LatestImageVisionVerifier, RunVerifier
 from harness.skills import RuntimeSkillLoader
 from harness.storage import SQLiteStore
@@ -104,14 +105,18 @@ def build_agent_loop(
     )
     hooks = HookDispatcher([PermissionHook(settings.permissions)])
     base_provider = DeepSeekProvider(settings)
-    provider = RetryingLLMProvider(
+    retrying_provider = RetryingLLMProvider(
         base_provider,
         timeout_seconds=settings.agent_llm_timeout_seconds,
         max_attempts=settings.agent_llm_max_attempts,
         retry_base_seconds=settings.agent_llm_retry_base_seconds,
     )
+    agent_provider = SystemInstructionLLMProvider(
+        retrying_provider,
+        DEFAULT_AGENT_SYSTEM_PROMPT,
+    )
     context_compactor = LLMContextCompactor(
-        provider,
+        retrying_provider,
         keep_recent=settings.context_keep_recent,
     )
     store = SQLiteStore(settings.harness_data_dir / "harness.db")
@@ -122,7 +127,7 @@ def build_agent_loop(
             settings.harness_workspace,
         )
     return AgentLoop(
-        provider,
+        agent_provider,
         registry,
         hooks,
         store=store,
