@@ -5,7 +5,7 @@ from typing import ClassVar
 from pydantic import BaseModel, Field
 
 from harness.skills import RuntimeSkillLoader
-from harness.tools.base import Tool, ToolResult, ToolRisk
+from harness.tools.base import EmptyArguments, Tool, ToolResult, ToolRisk
 
 
 class SkillLoadArguments(BaseModel):
@@ -16,7 +16,7 @@ class SkillListTool(Tool):
     name: ClassVar[str] = "skill_list"
     description: ClassVar[str] = "List reusable runtime procedures available to the harness."
     risk: ClassVar[ToolRisk] = ToolRisk.READ
-    arguments_model: ClassVar[type[BaseModel]] = BaseModel
+    arguments_model: ClassVar[type[BaseModel]] = EmptyArguments
 
     def __init__(self, loader: RuntimeSkillLoader) -> None:
         self._loader = loader
