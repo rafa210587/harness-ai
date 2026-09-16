@@ -9,6 +9,10 @@ from pydantic import BaseModel, Field
 MessageRole = Literal["system", "user", "assistant", "tool"]
 
 
+class LLMProviderError(RuntimeError):
+    """Normalized provider boundary error."""
+
+
 class ToolCall(BaseModel):
     id: str
     name: str
