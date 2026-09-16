@@ -4,6 +4,7 @@ from harness.tools import (
     BrowserClickTool,
     BrowserFillTool,
     BrowserNavigateTool,
+    FilesystemMoveTool,
     FilesystemReadTool,
     FilesystemWriteTool,
     ShellRunTool,
@@ -13,11 +14,12 @@ from harness.tools import (
 )
 
 
-def test_arbitrary_execution_and_side_effect_tools_remain_dangerous() -> None:
+def test_arbitrary_execution_and_destructive_tools_remain_dangerous() -> None:
     assert ShellRunTool.risk is ToolRisk.DANGEROUS
     assert BrowserClickTool.risk is ToolRisk.DANGEROUS
     assert BlenderExecutePythonTool.risk is ToolRisk.DANGEROUS
     assert UnityExecuteEditorScriptTool.risk is ToolRisk.DANGEROUS
+    assert FilesystemMoveTool.risk is ToolRisk.DANGEROUS
 
 
 def test_known_read_and_write_tools_keep_expected_risk_boundaries() -> None:
