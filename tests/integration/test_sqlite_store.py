@@ -74,6 +74,26 @@ async def test_sqlite_store_rejects_incompatible_schema_version(tmp_path: Path) 
         await store.initialize()
 
 
+async def test_sqlite_store_rejects_orphan_child_records(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "harness.db")
+    await store.initialize()
+
+    with pytest.raises(sqlite3.IntegrityError):
+        await store.add_event("missing-session", "ORPHAN", {})
+
+    with pytest.raises(sqlite3.IntegrityError):
+        await store.add_message("missing-session", Message(role="user", content="orphan"))
+
+    with pytest.raises(sqlite3.IntegrityError):
+        await store.add_artifact(
+            "orphan-artifact",
+            "missing-session",
+            "txt",
+            "orphan.txt",
+            "test",
+        )
+
+
 async def test_sqlite_store_persists_and_lists_artifacts(tmp_path: Path) -> None:
     store = SQLiteStore(tmp_path / "harness.db")
     await store.initialize()
