@@ -77,7 +77,10 @@ class SQLiteStore:
         now = _utc_now()
         async with aiosqlite.connect(self._path) as db:
             await db.execute(
-                "INSERT INTO sessions(id, task, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                """
+                INSERT INTO sessions(id, task, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
                 (session_id, task, "running", now, now),
             )
             await db.commit()
@@ -86,8 +89,9 @@ class SQLiteStore:
         async with aiosqlite.connect(self._path) as db:
             await db.execute(
                 """
-                INSERT INTO messages(session_id, role, content, tool_call_id, tool_calls_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO messages(
+                    session_id, role, content, tool_call_id, tool_calls_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_id,
@@ -127,7 +131,10 @@ class SQLiteStore:
     async def add_event(self, session_id: str, event_type: str, payload: dict[str, object]) -> None:
         async with aiosqlite.connect(self._path) as db:
             await db.execute(
-                "INSERT INTO events(session_id, event_type, payload_json, created_at) VALUES (?, ?, ?, ?)",
+                """
+                INSERT INTO events(session_id, event_type, payload_json, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
                 (session_id, event_type, json.dumps(payload, default=str), _utc_now()),
             )
             await db.commit()
