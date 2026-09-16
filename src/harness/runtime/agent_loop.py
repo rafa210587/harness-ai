@@ -10,7 +10,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from harness.hooks import BeforeToolEvent, HookAction, HookDispatcher
-from harness.llm import LLMProvider, LLMProviderError, Message
+from harness.llm import LLMProvider, LLMProviderError, Message, ToolCall
 from harness.storage import SQLiteStore
 from harness.tools import ToolRegistry, ToolResult
 
@@ -78,13 +78,90 @@ class AgentLoop:
             messages,
             Message(role="user", content=task),
         )
+        return await self._continue(current_session_id, messages)
 
-        consecutive_errors = 0
+    async def resume(self, session_id: str) -> AgentRunResult:
+        if self._store is None:
+            raise RuntimeError("Session resume requires persistent storage")
+
+        await self._store.initialize()
+        session = await self._store.get_session(session_id)
+        if session is None:
+            raise ValueError(f"Unknown session: {session_id}")
+        if session.status != AgentStatus.BLOCKED.value:
+            raise ValueError(f"Session {session_id} is not blocked")
+
+        messages = await self._store.list_messages(session_id)
+        approval = await self._store.get_pending_approval(session_id)
+        if approval is None:
+            raise ValueError(f"Session {session_id} has no pending approval")
+        if self._approval_handler is None:
+            return AgentRunResult(
+                status=AgentStatus.BLOCKED,
+                steps=0,
+                session_id=session_id,
+                reason=approval.reason or "Human approval required",
+            )
+
+        call = approval.tool_call()
+        tool = self._tools.get(call.name) if call.name in self._tools else None
+        event = BeforeToolEvent(
+            session_id=session_id,
+            tool_name=call.name,
+            arguments=call.arguments,
+            risk=tool.risk if tool is not None else self._missing_tool_risk(),
+        )
+        approved = await self._approval_handler(event)
+        await self._store.decide_approval(approval.id, approved)
+        await self._record_event(
+            session_id,
+            "APPROVAL_DECIDED",
+            {"tool": call.name, "call_id": call.id, "approved": approved},
+        )
+        await self._store.set_session_status(session_id, "running")
+        await self._record_event(session_id, "SESSION_RESUMED", {"call_id": call.id})
+
+        if not approved:
+            tool_result = ToolResult.fail("Human approval denied")
+        elif tool is None:
+            tool_result = ToolResult.fail(f"Unknown tool: {call.name}")
+        else:
+            tool_result = await self._tools.execute(call.name, call.arguments)
+
+        await self._persist_tool_result(session_id, messages, call, tool_result, step=0)
+        consecutive_errors = 0 if tool_result.success else 1
+
+        unresolved = _unresolved_tool_calls(messages)
+        if unresolved:
+            consecutive_errors, terminal = await self._process_tool_calls(
+                session_id,
+                messages,
+                unresolved,
+                step=0,
+                consecutive_errors=consecutive_errors,
+            )
+            if terminal is not None:
+                return terminal
+
+        return await self._continue(
+            session_id,
+            messages,
+            initial_consecutive_errors=consecutive_errors,
+        )
+
+    async def _continue(
+        self,
+        session_id: str,
+        messages: list[Message],
+        *,
+        initial_consecutive_errors: int = 0,
+    ) -> AgentRunResult:
+        consecutive_errors = initial_consecutive_errors
 
         for step in range(1, self._max_steps + 1):
             llm_started = perf_counter()
             await self._record_event(
-                current_session_id,
+                session_id,
                 "LLM_REQUEST_STARTED",
                 {"step": step, "message_count": len(messages)},
             )
@@ -92,7 +169,7 @@ class AgentLoop:
                 response = await self._provider.complete(messages, tools=self._tools.schemas())
             except LLMProviderError as exc:
                 await self._record_event(
-                    current_session_id,
+                    session_id,
                     "LLM_ERROR",
                     {
                         "step": step,
@@ -100,11 +177,11 @@ class AgentLoop:
                         "duration_ms": _duration_ms(llm_started),
                     },
                 )
-                await self._finish_session(current_session_id, AgentStatus.FAILED, str(exc))
+                await self._finish_session(session_id, AgentStatus.FAILED, str(exc))
                 raise
 
             await self._record_event(
-                current_session_id,
+                session_id,
                 "LLM_RESPONSE_RECEIVED",
                 {
                     "step": step,
@@ -117,7 +194,7 @@ class AgentLoop:
             if not response.tool_calls:
                 if response.content is not None:
                     await self._append_message(
-                        current_session_id,
+                        session_id,
                         messages,
                         Message(role="assistant", content=response.content),
                     )
@@ -125,13 +202,13 @@ class AgentLoop:
                     status=AgentStatus.COMPLETED,
                     content=response.content,
                     steps=step,
-                    session_id=current_session_id,
+                    session_id=session_id,
                 )
-                await self._finish_session(current_session_id, result.status)
+                await self._finish_session(session_id, result.status)
                 return result
 
             await self._append_message(
-                current_session_id,
+                session_id,
                 messages,
                 Message(
                     role="assistant",
@@ -139,108 +216,152 @@ class AgentLoop:
                     tool_calls=response.tool_calls,
                 ),
             )
-
-            for call in response.tool_calls:
-                tool_started = perf_counter()
-                await self._record_event(
-                    current_session_id,
-                    "TOOL_STARTED",
-                    {"step": step, "tool": call.name, "call_id": call.id},
-                )
-                tool = self._tools.get(call.name) if call.name in self._tools else None
-                if tool is None:
-                    tool_result = ToolResult.fail(f"Unknown tool: {call.name}")
-                else:
-                    event = BeforeToolEvent(
-                        session_id=current_session_id,
-                        tool_name=call.name,
-                        arguments=call.arguments,
-                        risk=tool.risk,
-                    )
-                    decision = await self._hooks.before_tool(event)
-
-                    if decision.action is HookAction.DENY:
-                        tool_result = ToolResult.fail(decision.reason or "Tool execution denied")
-                    elif decision.action is HookAction.REQUIRE_APPROVAL:
-                        if self._approval_handler is None:
-                            reason = decision.reason or "Human approval required"
-                            await self._record_event(
-                                current_session_id,
-                                "APPROVAL_REQUIRED",
-                                {"tool": call.name, "reason": reason},
-                            )
-                            result = AgentRunResult(
-                                status=AgentStatus.BLOCKED,
-                                steps=step,
-                                session_id=current_session_id,
-                                reason=reason,
-                            )
-                            await self._finish_session(current_session_id, result.status, reason)
-                            return result
-
-                        approved = await self._approval_handler(event)
-                        await self._record_event(
-                            current_session_id,
-                            "APPROVAL_DECIDED",
-                            {"tool": call.name, "approved": approved},
-                        )
-                        if not approved:
-                            tool_result = ToolResult.fail("Human approval denied")
-                        else:
-                            tool_result = await self._tools.execute(call.name, call.arguments)
-                    else:
-                        tool_result = await self._tools.execute(call.name, call.arguments)
-
-                if self._store is not None:
-                    await self._store.add_tool_call(current_session_id, call, tool_result)
-                    await self._persist_artifacts(current_session_id, call.name, tool_result)
-
-                await self._record_event(
-                    current_session_id,
-                    "TOOL_COMPLETED" if tool_result.success else "TOOL_ERROR",
-                    {
-                        "step": step,
-                        "tool": call.name,
-                        "call_id": call.id,
-                        "duration_ms": _duration_ms(tool_started),
-                        "error": tool_result.error or "",
-                    },
-                )
-
-                await self._append_message(
-                    current_session_id,
-                    messages,
-                    Message(
-                        role="tool",
-                        tool_call_id=call.id,
-                        content=json.dumps(tool_result.model_dump(mode="json"), default=str),
-                    ),
-                )
-
-                if tool_result.success:
-                    consecutive_errors = 0
-                else:
-                    consecutive_errors += 1
-                    if consecutive_errors >= self._max_consecutive_errors:
-                        reason = "Maximum consecutive tool errors reached"
-                        result = AgentRunResult(
-                            status=AgentStatus.FAILED,
-                            steps=step,
-                            session_id=current_session_id,
-                            reason=reason,
-                        )
-                        await self._finish_session(current_session_id, result.status, reason)
-                        return result
+            consecutive_errors, terminal = await self._process_tool_calls(
+                session_id,
+                messages,
+                response.tool_calls,
+                step=step,
+                consecutive_errors=consecutive_errors,
+            )
+            if terminal is not None:
+                return terminal
 
         reason = "Maximum agent steps reached"
         result = AgentRunResult(
             status=AgentStatus.FAILED,
             steps=self._max_steps,
-            session_id=current_session_id,
+            session_id=session_id,
             reason=reason,
         )
-        await self._finish_session(current_session_id, result.status, reason)
+        await self._finish_session(session_id, result.status, reason)
         return result
+
+    async def _process_tool_calls(
+        self,
+        session_id: str,
+        messages: list[Message],
+        calls: list[ToolCall],
+        *,
+        step: int,
+        consecutive_errors: int,
+    ) -> tuple[int, AgentRunResult | None]:
+        for call in calls:
+            tool_started = perf_counter()
+            await self._record_event(
+                session_id,
+                "TOOL_STARTED",
+                {"step": step, "tool": call.name, "call_id": call.id},
+            )
+            tool = self._tools.get(call.name) if call.name in self._tools else None
+            if tool is None:
+                tool_result = ToolResult.fail(f"Unknown tool: {call.name}")
+            else:
+                event = BeforeToolEvent(
+                    session_id=session_id,
+                    tool_name=call.name,
+                    arguments=call.arguments,
+                    risk=tool.risk,
+                )
+                decision = await self._hooks.before_tool(event)
+
+                if decision.action is HookAction.DENY:
+                    tool_result = ToolResult.fail(decision.reason or "Tool execution denied")
+                elif decision.action is HookAction.REQUIRE_APPROVAL:
+                    reason = decision.reason or "Human approval required"
+                    if self._store is not None:
+                        await self._store.create_approval(session_id, call, reason)
+                    await self._record_event(
+                        session_id,
+                        "APPROVAL_REQUIRED",
+                        {"tool": call.name, "call_id": call.id, "reason": reason},
+                    )
+                    if self._approval_handler is None:
+                        result = AgentRunResult(
+                            status=AgentStatus.BLOCKED,
+                            steps=step,
+                            session_id=session_id,
+                            reason=reason,
+                        )
+                        await self._finish_session(session_id, result.status, reason)
+                        return consecutive_errors, result
+
+                    approved = await self._approval_handler(event)
+                    if self._store is not None:
+                        approval = await self._store.get_pending_approval(session_id)
+                        if approval is not None and approval.call_id == call.id:
+                            await self._store.decide_approval(approval.id, approved)
+                    await self._record_event(
+                        session_id,
+                        "APPROVAL_DECIDED",
+                        {"tool": call.name, "call_id": call.id, "approved": approved},
+                    )
+                    if not approved:
+                        tool_result = ToolResult.fail("Human approval denied")
+                    else:
+                        tool_result = await self._tools.execute(call.name, call.arguments)
+                else:
+                    tool_result = await self._tools.execute(call.name, call.arguments)
+
+            await self._persist_tool_result(
+                session_id,
+                messages,
+                call,
+                tool_result,
+                step=step,
+                started=tool_started,
+            )
+
+            if tool_result.success:
+                consecutive_errors = 0
+            else:
+                consecutive_errors += 1
+                if consecutive_errors >= self._max_consecutive_errors:
+                    reason = "Maximum consecutive tool errors reached"
+                    result = AgentRunResult(
+                        status=AgentStatus.FAILED,
+                        steps=step,
+                        session_id=session_id,
+                        reason=reason,
+                    )
+                    await self._finish_session(session_id, result.status, reason)
+                    return consecutive_errors, result
+
+        return consecutive_errors, None
+
+    async def _persist_tool_result(
+        self,
+        session_id: str,
+        messages: list[Message],
+        call: ToolCall,
+        result: ToolResult,
+        *,
+        step: int,
+        started: float | None = None,
+    ) -> None:
+        if self._store is not None:
+            await self._store.add_tool_call(session_id, call, result)
+            await self._persist_artifacts(session_id, call.name, result)
+
+        await self._record_event(
+            session_id,
+            "TOOL_COMPLETED" if result.success else "TOOL_ERROR",
+            {
+                "step": step,
+                "tool": call.name,
+                "call_id": call.id,
+                "duration_ms": _duration_ms(started) if started is not None else 0,
+                "error": result.error or "",
+            },
+        )
+        await self._append_message(
+            session_id,
+            messages,
+            Message(
+                role="tool",
+                tool_call_id=call.id,
+                content=json.dumps(result.model_dump(mode="json"), default=str),
+            ),
+        )
 
     async def _append_message(
         self,
@@ -304,6 +425,26 @@ class AgentLoop:
                 "SESSION_FINISHED",
                 {"status": status.value, "reason": reason or ""},
             )
+
+    def _missing_tool_risk(self):
+        from harness.tools import ToolRisk
+
+        return ToolRisk.DANGEROUS
+
+
+def _unresolved_tool_calls(messages: list[Message]) -> list[ToolCall]:
+    resolved_ids = {
+        message.tool_call_id
+        for message in messages
+        if message.role == "tool" and message.tool_call_id is not None
+    }
+    return [
+        call
+        for message in messages
+        if message.role == "assistant"
+        for call in message.tool_calls
+        if call.id not in resolved_ids
+    ]
 
 
 def _duration_ms(started: float) -> int:
