@@ -73,7 +73,7 @@ def build_agent_loop(
 ) -> AgentLoop:
     settings.harness_data_dir.mkdir(parents=True, exist_ok=True)
     registry = build_tool_registry(settings)
-    hooks = HookDispatcher([PermissionHook()])
+    hooks = HookDispatcher([PermissionHook(settings.permissions)])
     provider = DeepSeekProvider(settings)
     store = SQLiteStore(settings.harness_data_dir / "harness.db")
     return AgentLoop(
