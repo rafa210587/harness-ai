@@ -50,10 +50,11 @@ class LLMContextCompactor:
                 Message(
                     role="system",
                     content=(
-                        "Summarize the supplied earlier agent conversation as compact working memory. "
-                        "Preserve the original goal, decisions, constraints, completed actions, important "
-                        "tool results, artifact paths, failures, approvals, and remaining work. Do not add "
-                        "facts. Return only the working-memory summary."
+                        "Summarize the supplied earlier agent conversation as compact "
+                        "working memory. Preserve the original goal, decisions, constraints, "
+                        "completed actions, important tool results, artifact paths, failures, "
+                        "approvals, and remaining work. Do not add facts. Return only the "
+                        "working-memory summary."
                     ),
                 ),
                 Message(
