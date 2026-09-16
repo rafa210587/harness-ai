@@ -1,26 +1,9 @@
-permissions:
-  filesystem:
-    read: auto
-    list: auto
-    write: auto
-    delete: approval
+read: auto
+write: auto
+dangerous: approval
 
-  shell:
-    normal: auto
-    elevated: approval
-
-  browser:
-    read: auto
-    navigate: auto
-    submit: approval
-    purchase: deny
-
-  blender:
-    modify: auto
-
-  unity:
-    modify: auto
-
-  git:
-    commit: auto
-    push: approval
+tools:
+  shell_run: approval
+  browser_click: approval
+  blender_execute_python: approval
+  unity_execute_editor_script: approval
