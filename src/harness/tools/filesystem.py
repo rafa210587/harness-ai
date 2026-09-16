@@ -60,7 +60,9 @@ class FilesystemReadTool(Tool):
         path = self._paths.resolve(args.path)
         if not path.is_file():
             return ToolResult.fail(f"File not found: {args.path}")
-        return ToolResult.ok({"path": self._paths.relative(path), "content": path.read_text(encoding="utf-8")})
+        return ToolResult.ok(
+            {"path": self._paths.relative(path), "content": path.read_text(encoding="utf-8")}
+        )
 
 
 class FilesystemListTool(Tool):
@@ -80,7 +82,10 @@ class FilesystemListTool(Tool):
 
         iterator = path.rglob("*") if args.recursive else path.iterdir()
         entries = [
-            {"path": self._paths.relative(entry), "type": "directory" if entry.is_dir() else "file"}
+            {
+                "path": self._paths.relative(entry),
+                "type": "directory" if entry.is_dir() else "file",
+            }
             for entry in sorted(iterator)
         ]
         return ToolResult.ok(entries)
@@ -102,12 +107,16 @@ class FilesystemWriteTool(Tool):
             return ToolResult.fail(f"File already exists: {args.path}")
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(args.content, encoding="utf-8")
-        return ToolResult.ok({"path": self._paths.relative(path), "bytes": len(args.content.encode("utf-8"))})
+        return ToolResult.ok(
+            {"path": self._paths.relative(path), "bytes": len(args.content.encode("utf-8"))}
+        )
 
 
 class FilesystemSearchTool(Tool):
     name: ClassVar[str] = "filesystem_search"
-    description: ClassVar[str] = "Search UTF-8 text files for a literal string inside the workspace."
+    description: ClassVar[str] = (
+        "Search UTF-8 text files for a literal string inside the workspace."
+    )
     risk: ClassVar[ToolRisk] = ToolRisk.READ
     arguments_model: ClassVar[type[BaseModel]] = SearchArguments
 
