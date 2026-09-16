@@ -5,7 +5,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from dotenv import dotenv_values
 from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -112,7 +112,7 @@ def load_settings(
 def _load_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
-    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    raw: object = yaml.safe_load(path.read_text(encoding="utf-8"))
     if raw is None:
         return {}
     if not isinstance(raw, dict):
