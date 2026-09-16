@@ -11,6 +11,9 @@ htmlcov/
 .idea/
 .vscode/
 
+# Temporary feature refinement/spec/plan/task artifacts
+.work/
+
 # Runtime state
 data/*
 !data/.gitkeep
