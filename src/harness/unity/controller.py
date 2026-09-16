@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from uuid import uuid4
 
-from harness.runtime.process import ProcessResult, run_process
+from harness.process import ProcessResult, run_process
 from harness.tools.filesystem import WorkspacePaths
 
 ProcessRunner = Callable[..., Awaitable[ProcessResult]]
