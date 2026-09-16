@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import ClassVar
 
@@ -37,6 +38,19 @@ class WriteArguments(BaseModel):
     path: str
     content: str
     overwrite: bool = True
+
+
+class PatchArguments(BaseModel):
+    path: str
+    old: str = Field(min_length=1)
+    new: str
+    expected_replacements: int = Field(default=1, ge=1)
+
+
+class TransferArguments(BaseModel):
+    source: str
+    destination: str
+    overwrite: bool = False
 
 
 class SearchArguments(BaseModel):
@@ -110,6 +124,101 @@ class FilesystemWriteTool(Tool):
         return ToolResult.ok(
             {"path": self._paths.relative(path), "bytes": len(args.content.encode("utf-8"))}
         )
+
+
+class FilesystemPatchTool(Tool):
+    name: ClassVar[str] = "filesystem_patch"
+    description: ClassVar[str] = "Replace an exact text fragment in a UTF-8 workspace file."
+    risk: ClassVar[ToolRisk] = ToolRisk.WRITE
+    arguments_model: ClassVar[type[BaseModel]] = PatchArguments
+
+    def __init__(self, paths: WorkspacePaths) -> None:
+        self._paths = paths
+
+    async def execute(self, arguments: BaseModel) -> ToolResult:
+        args = PatchArguments.model_validate(arguments.model_dump())
+        path = self._paths.resolve(args.path)
+        if not path.is_file():
+            return ToolResult.fail(f"File not found: {args.path}")
+        content = path.read_text(encoding="utf-8")
+        matches = content.count(args.old)
+        if matches != args.expected_replacements:
+            return ToolResult.fail(
+                f"Expected {args.expected_replacements} replacements in {args.path}, found {matches}"
+            )
+        updated = content.replace(args.old, args.new, args.expected_replacements)
+        path.write_text(updated, encoding="utf-8")
+        return ToolResult.ok(
+            {"path": self._paths.relative(path), "replacements": args.expected_replacements}
+        )
+
+
+class FilesystemMkdirTool(Tool):
+    name: ClassVar[str] = "filesystem_mkdir"
+    description: ClassVar[str] = "Create a directory inside the workspace."
+    risk: ClassVar[ToolRisk] = ToolRisk.WRITE
+    arguments_model: ClassVar[type[BaseModel]] = PathArguments
+
+    def __init__(self, paths: WorkspacePaths) -> None:
+        self._paths = paths
+
+    async def execute(self, arguments: BaseModel) -> ToolResult:
+        args = PathArguments.model_validate(arguments.model_dump())
+        path = self._paths.resolve(args.path)
+        path.mkdir(parents=True, exist_ok=True)
+        return ToolResult.ok({"path": self._paths.relative(path)})
+
+
+class FilesystemCopyTool(Tool):
+    name: ClassVar[str] = "filesystem_copy"
+    description: ClassVar[str] = "Copy a file or directory inside the workspace."
+    risk: ClassVar[ToolRisk] = ToolRisk.WRITE
+    arguments_model: ClassVar[type[BaseModel]] = TransferArguments
+
+    def __init__(self, paths: WorkspacePaths) -> None:
+        self._paths = paths
+
+    async def execute(self, arguments: BaseModel) -> ToolResult:
+        args = TransferArguments.model_validate(arguments.model_dump())
+        source = self._paths.resolve(args.source)
+        destination = self._paths.resolve(args.destination)
+        if not source.exists():
+            return ToolResult.fail(f"Source not found: {args.source}")
+        if destination.exists() and not args.overwrite:
+            return ToolResult.fail(f"Destination already exists: {args.destination}")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, destination, dirs_exist_ok=args.overwrite)
+        else:
+            shutil.copy2(source, destination)
+        return ToolResult.ok({"path": self._paths.relative(destination)})
+
+
+class FilesystemMoveTool(Tool):
+    name: ClassVar[str] = "filesystem_move"
+    description: ClassVar[str] = "Move a file or directory inside the workspace."
+    risk: ClassVar[ToolRisk] = ToolRisk.WRITE
+    arguments_model: ClassVar[type[BaseModel]] = TransferArguments
+
+    def __init__(self, paths: WorkspacePaths) -> None:
+        self._paths = paths
+
+    async def execute(self, arguments: BaseModel) -> ToolResult:
+        args = TransferArguments.model_validate(arguments.model_dump())
+        source = self._paths.resolve(args.source)
+        destination = self._paths.resolve(args.destination)
+        if not source.exists():
+            return ToolResult.fail(f"Source not found: {args.source}")
+        if destination.exists():
+            if not args.overwrite:
+                return ToolResult.fail(f"Destination already exists: {args.destination}")
+            if destination.is_dir():
+                shutil.rmtree(destination)
+            else:
+                destination.unlink()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        moved = Path(shutil.move(str(source), str(destination)))
+        return ToolResult.ok({"path": self._paths.relative(moved)})
 
 
 class FilesystemSearchTool(Tool):
