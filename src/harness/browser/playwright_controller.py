@@ -4,7 +4,7 @@ from pathlib import Path
 
 from playwright.async_api import BrowserContext, Page, Playwright, Route, async_playwright
 
-from harness.browser.security import is_blocked_http_url
+from harness.browser.security import ensure_public_http_url_resolved, is_blocked_http_url
 
 
 class PlaywrightController:
@@ -81,7 +81,16 @@ class PlaywrightController:
         return self._page
 
     async def _guard_request(self, route: Route) -> None:
-        if is_blocked_http_url(route.request.url):
+        url = route.request.url
+        if is_blocked_http_url(url):
             await route.abort("blockedbyclient")
             return
+
+        if url.lower().startswith(("http://", "https://")):
+            try:
+                await ensure_public_http_url_resolved(url)
+            except (OSError, ValueError):
+                await route.abort("blockedbyclient")
+                return
+
         await route.continue_()
