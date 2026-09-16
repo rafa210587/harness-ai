@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from time import perf_counter
 from typing import Protocol
 
-from pydantic import BaseModel, Field
+import yaml  # type: ignore[import-untyped]
+from pydantic import BaseModel, Field, TypeAdapter
 
-from harness.runtime import AgentRunResult, AgentStatus
+from harness.runtime.agent_loop import AgentRunResult, AgentStatus
 from harness.storage import SQLiteStore
 
 
@@ -44,10 +46,22 @@ class AgentRunner(Protocol):
 
 
 AgentFactory = Callable[[EvalScenario], AgentRunner]
+_SCENARIOS = TypeAdapter(list[EvalScenario])
+
+
+def load_eval_scenarios(path: Path) -> list[EvalScenario]:
+    if not path.is_file():
+        raise FileNotFoundError(f"Eval scenario file not found: {path}")
+    raw: object = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if isinstance(raw, dict) and "scenarios" in raw:
+        raw = raw["scenarios"]
+    if raw is None:
+        return []
+    return _SCENARIOS.validate_python(raw)
 
 
 class EvalRunner:
-    """Run deterministic or real-agent scenarios without introducing an eval framework dependency."""
+    """Run deterministic or real-agent scenarios without an external eval framework."""
 
     def __init__(self, agent_factory: AgentFactory, *, store: SQLiteStore | None = None) -> None:
         self._agent_factory = agent_factory
