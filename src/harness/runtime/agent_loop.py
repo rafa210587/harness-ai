@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from enum import StrEnum
+from pathlib import Path
 from time import perf_counter
 from uuid import uuid4
 
@@ -192,6 +193,7 @@ class AgentLoop:
 
                 if self._store is not None:
                     await self._store.add_tool_call(current_session_id, call, tool_result)
+                    await self._persist_artifacts(current_session_id, call.name, tool_result)
 
                 await self._record_event(
                     current_session_id,
@@ -258,6 +260,36 @@ class AgentLoop:
     ) -> None:
         if self._store is not None:
             await self._store.add_event(session_id, event_type, payload)
+
+    async def _persist_artifacts(
+        self,
+        session_id: str,
+        tool_name: str,
+        result: ToolResult,
+    ) -> None:
+        if self._store is None:
+            return
+        for artifact_path in result.artifacts:
+            artifact_id = uuid4().hex
+            suffix = Path(artifact_path).suffix.lower().lstrip(".")
+            artifact_type = suffix or "file"
+            await self._store.add_artifact(
+                artifact_id,
+                session_id,
+                artifact_type,
+                artifact_path,
+                tool_name,
+            )
+            await self._store.add_event(
+                session_id,
+                "ARTIFACT_CREATED",
+                {
+                    "artifact_id": artifact_id,
+                    "type": artifact_type,
+                    "path": artifact_path,
+                    "created_by": tool_name,
+                },
+            )
 
     async def _finish_session(
         self,
