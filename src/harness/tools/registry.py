@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from pydantic import ValidationError
@@ -8,8 +9,11 @@ from harness.tools.base import Tool, ToolResult
 
 
 class ToolRegistry:
-    def __init__(self) -> None:
+    def __init__(self, *, default_timeout_seconds: int = 300) -> None:
+        if default_timeout_seconds < 1:
+            raise ValueError("default_timeout_seconds must be at least 1")
         self._tools: dict[str, Tool] = {}
+        self._default_timeout_seconds = default_timeout_seconds
 
     def register(self, tool: Tool) -> None:
         if tool.name in self._tools:
@@ -40,7 +44,15 @@ class ToolRegistry:
             return ToolResult.fail(f"Invalid arguments for {name}: {exc}")
 
         try:
-            return await tool.execute(validated)
+            return await asyncio.wait_for(
+                tool.execute(validated),
+                timeout=self._default_timeout_seconds,
+            )
+        except TimeoutError:
+            return ToolResult.fail(
+                f"Tool {name} timed out after {self._default_timeout_seconds}s",
+                retryable=False,
+            )
         except Exception as exc:  # boundary: normalize tool implementation failures
             return ToolResult.fail(f"Tool {name} failed: {exc}")
 
