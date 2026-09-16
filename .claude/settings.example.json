@@ -2,11 +2,11 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit",
+        "matcher": "Bash|PowerShell|Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/guard_destructive.py"
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_destructive.py\""
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/post_python_edit.py"
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/post_python_edit.py\""
           }
         ]
       }
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/verify_on_stop.py"
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/verify_on_stop.py\""
           }
         ]
       }
