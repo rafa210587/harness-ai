@@ -11,16 +11,21 @@ def test_settings_defaults(monkeypatch) -> None:
     assert settings.deepseek_model == "deepseek-flash"
     assert settings.harness_workspace == Path("workspace")
     assert settings.agent_max_steps == 50
+    assert settings.agent_llm_timeout_seconds == 120
+    assert settings.agent_llm_max_attempts == 3
+    assert settings.agent_llm_retry_base_seconds == 1.0
 
 
 def test_settings_environment_override(monkeypatch) -> None:
     monkeypatch.setenv("DEEPSEEK_MODEL", "custom-model")
     monkeypatch.setenv("AGENT_MAX_STEPS", "12")
+    monkeypatch.setenv("AGENT_LLM_MAX_ATTEMPTS", "4")
 
     settings = Settings(_env_file=None)
 
     assert settings.deepseek_model == "custom-model"
     assert settings.agent_max_steps == 12
+    assert settings.agent_llm_max_attempts == 4
 
 
 def test_load_settings_precedence_and_permissions(tmp_path: Path, monkeypatch) -> None:
@@ -32,6 +37,9 @@ workspace:
   root: ./yaml-workspace
 agent:
   max_steps: 7
+  llm_timeout_seconds: 45
+  llm_max_attempts: 2
+  llm_retry_base_seconds: 0.5
 browser:
   headless: true
 """.strip(),
@@ -67,6 +75,9 @@ tools:
     assert settings.deepseek_base_url == "https://yaml.example"
     assert settings.deepseek_model == "dotenv-model"
     assert settings.agent_max_steps == 13
+    assert settings.agent_llm_timeout_seconds == 45
+    assert settings.agent_llm_max_attempts == 2
+    assert settings.agent_llm_retry_base_seconds == 0.5
     assert settings.permissions.write is PermissionAction.APPROVAL
     assert settings.permissions.dangerous is PermissionAction.DENY
     assert settings.permissions.action_for("shell_run", "dangerous") is PermissionAction.APPROVAL
