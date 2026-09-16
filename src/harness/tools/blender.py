@@ -51,7 +51,9 @@ class BlenderExecutePythonTool(Tool):
 
 class BlenderRenderTool(Tool):
     name: ClassVar[str] = "blender_render"
-    description: ClassVar[str] = "Render one frame from a .blend file to a PNG inside the workspace."
+    description: ClassVar[str] = (
+        "Render one frame from a .blend file to a PNG inside the workspace."
+    )
     risk: ClassVar[ToolRisk] = ToolRisk.WRITE
     arguments_model: ClassVar[type[BaseModel]] = RenderArguments
 
@@ -71,7 +73,9 @@ class BlenderRenderTool(Tool):
         if result.exit_code != 0:
             return ToolResult.fail(result.stderr or f"Blender exited with {result.exit_code}")
         if not output.is_file():
-            return ToolResult.fail(f"Blender reported success but render was not created: {args.output_path}")
+            return ToolResult.fail(
+                f"Blender reported success but render was not created: {args.output_path}"
+            )
         relative = self._paths.relative(output)
         return ToolResult.ok(
             {"path": relative, "stdout": result.stdout, "stderr": result.stderr},
