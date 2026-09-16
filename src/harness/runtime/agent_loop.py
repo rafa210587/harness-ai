@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from enum import StrEnum
+from time import perf_counter
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -80,16 +81,37 @@ class AgentLoop:
         consecutive_errors = 0
 
         for step in range(1, self._max_steps + 1):
+            llm_started = perf_counter()
+            await self._record_event(
+                current_session_id,
+                "LLM_REQUEST_STARTED",
+                {"step": step, "message_count": len(messages)},
+            )
             try:
                 response = await self._provider.complete(messages, tools=self._tools.schemas())
             except LLMProviderError as exc:
                 await self._record_event(
                     current_session_id,
                     "LLM_ERROR",
-                    {"error": str(exc)},
+                    {
+                        "step": step,
+                        "error": str(exc),
+                        "duration_ms": _duration_ms(llm_started),
+                    },
                 )
                 await self._finish_session(current_session_id, AgentStatus.FAILED, str(exc))
                 raise
+
+            await self._record_event(
+                current_session_id,
+                "LLM_RESPONSE_RECEIVED",
+                {
+                    "step": step,
+                    "tool_call_count": len(response.tool_calls),
+                    "finish_reason": response.finish_reason or "",
+                    "duration_ms": _duration_ms(llm_started),
+                },
+            )
 
             if not response.tool_calls:
                 if response.content is not None:
@@ -118,6 +140,12 @@ class AgentLoop:
             )
 
             for call in response.tool_calls:
+                tool_started = perf_counter()
+                await self._record_event(
+                    current_session_id,
+                    "TOOL_STARTED",
+                    {"step": step, "tool": call.name, "call_id": call.id},
+                )
                 tool = self._tools.get(call.name) if call.name in self._tools else None
                 if tool is None:
                     tool_result = ToolResult.fail(f"Unknown tool: {call.name}")
@@ -164,6 +192,18 @@ class AgentLoop:
 
                 if self._store is not None:
                     await self._store.add_tool_call(current_session_id, call, tool_result)
+
+                await self._record_event(
+                    current_session_id,
+                    "TOOL_COMPLETED" if tool_result.success else "TOOL_ERROR",
+                    {
+                        "step": step,
+                        "tool": call.name,
+                        "call_id": call.id,
+                        "duration_ms": _duration_ms(tool_started),
+                        "error": tool_result.error or "",
+                    },
+                )
 
                 await self._append_message(
                     current_session_id,
@@ -232,3 +272,7 @@ class AgentLoop:
                 "SESSION_FINISHED",
                 {"status": status.value, "reason": reason or ""},
             )
+
+
+def _duration_ms(started: float) -> int:
+    return round((perf_counter() - started) * 1000)
