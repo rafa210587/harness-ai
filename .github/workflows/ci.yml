@@ -43,13 +43,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: uv sync --all-groups
-
-      - name: Verify CLI packaging
-        run: uv run harness version
-
-      - name: Pytest core
-        run: >-
-          uv run pytest -m
-          "not blender and not unity and not browser_runtime and not browser_external"
+      - name: Run Windows core acceptance
+        shell: pwsh
+        run: .\scripts\validate-local.ps1
