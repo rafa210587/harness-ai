@@ -33,6 +33,9 @@ jobs:
           uv run pytest -m
           "not blender and not unity and not browser_runtime and not browser_external"
 
+      - name: Build distribution
+        run: uv build
+
   windows-core:
     runs-on: windows-latest
     steps:
