@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from harness.hooks import BeforeToolEvent, HookAction, HookDispatcher
 from harness.llm import LLMProvider, LLMProviderError, Message, ToolCall
+from harness.runtime.context import ContextCompactor
 from harness.runtime.verification import RunVerifier, VerificationRequest
 from harness.storage import SQLiteStore
 from harness.tools import ToolRegistry, ToolResult, ToolRisk
@@ -42,16 +43,22 @@ class AgentLoop:
         *,
         store: SQLiteStore | None = None,
         verifier: RunVerifier | None = None,
+        context_compactor: ContextCompactor | None = None,
+        max_context_messages: int = 40,
         max_verification_retries: int = 2,
         max_steps: int = 50,
         max_consecutive_errors: int = 5,
         approval_handler: ApprovalHandler | None = None,
     ) -> None:
+        if max_context_messages < 1:
+            raise ValueError("max_context_messages must be at least 1")
         self._provider = provider
         self._tools = tools
         self._hooks = hooks or HookDispatcher()
         self._store = store
         self._verifier = verifier
+        self._context_compactor = context_compactor
+        self._max_context_messages = max_context_messages
         self._max_verification_retries = max_verification_retries
         self._max_steps = max_steps
         self._max_consecutive_errors = max_consecutive_errors
@@ -167,6 +174,7 @@ class AgentLoop:
         verification_failures = 0
 
         for step in range(1, self._max_steps + 1):
+            await self._compact_context_if_needed(session_id, messages, step=step)
             llm_started = perf_counter()
             await self._record_event(
                 session_id,
@@ -495,6 +503,63 @@ class AgentLoop:
             if isinstance(path, str) and path not in paths:
                 paths.append(path)
         return paths
+
+    async def _compact_context_if_needed(
+        self,
+        session_id: str,
+        messages: list[Message],
+        *,
+        step: int,
+    ) -> None:
+        if self._context_compactor is None or len(messages) <= self._max_context_messages:
+            return
+
+        original_count = len(messages)
+        started = perf_counter()
+        await self._record_event(
+            session_id,
+            "CONTEXT_COMPACTION_STARTED",
+            {"step": step, "message_count": original_count},
+        )
+        try:
+            compacted = await self._context_compactor.compact(messages)
+        except Exception as exc:  # plugin boundary: compaction must not crash the agent run
+            await self._record_event(
+                session_id,
+                "CONTEXT_COMPACTION_FAILED",
+                {
+                    "step": step,
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "duration_ms": _duration_ms(started),
+                },
+            )
+            return
+
+        if len(compacted) >= original_count:
+            await self._record_event(
+                session_id,
+                "CONTEXT_COMPACTION_SKIPPED",
+                {
+                    "step": step,
+                    "reason": "no_reduction",
+                    "message_count": original_count,
+                    "duration_ms": _duration_ms(started),
+                },
+            )
+            return
+
+        messages[:] = compacted
+        await self._record_event(
+            session_id,
+            "CONTEXT_COMPACTED",
+            {
+                "step": step,
+                "before": original_count,
+                "after": len(messages),
+                "duration_ms": _duration_ms(started),
+            },
+        )
 
     async def _finish_session(
         self,
