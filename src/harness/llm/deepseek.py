@@ -48,10 +48,13 @@ class DeepSeekProvider(LLMProvider):
                 tool_choice="auto" if tools else None,
             )
         except Exception as exc:  # provider boundary
-            raise LLMProviderError(f"DeepSeek request failed: {exc}") from exc
+            raise LLMProviderError(
+                f"DeepSeek request failed: {exc}",
+                retryable=_is_retryable_provider_exception(exc),
+            ) from exc
 
         if not response.choices:
-            raise LLMProviderError("DeepSeek returned no choices")
+            raise LLMProviderError("DeepSeek returned no choices", retryable=True)
 
         choice = response.choices[0]
         response_message = choice.message
@@ -119,3 +122,17 @@ class DeepSeekProvider(LLMProvider):
             ]
 
         return payload
+
+
+def _is_retryable_provider_exception(exc: Exception) -> bool:
+    """Classify transient OpenAI-compatible transport/service failures without SDK coupling."""
+    if type(exc).__name__ in {
+        "APIConnectionError",
+        "APITimeoutError",
+        "RateLimitError",
+        "InternalServerError",
+    }:
+        return True
+
+    status_code = getattr(exc, "status_code", None)
+    return isinstance(status_code, int) and (status_code in {408, 409, 429} or status_code >= 500)
