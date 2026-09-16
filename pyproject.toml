@@ -35,7 +35,8 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
     "blender: requires a local Blender installation",
-    "unity: requires a local Unity installation",
+    "unity: requires a local Unity installation and disposable smoke project",
+    "browser_runtime: requires Playwright Chromium but no external network",
     "browser_external: uses external web resources",
 ]
 
