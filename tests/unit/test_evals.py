@@ -110,3 +110,35 @@ async def test_eval_runner_aggregates_persisted_llm_usage(tmp_path: Path) -> Non
     assert report.output_tokens == 4
     assert report.total_tokens == 14
     assert report.cases[0].total_tokens == 14
+
+
+async def test_eval_runner_requires_successful_tool_execution(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "harness.db")
+    await store.initialize()
+    await store.create_session("tool-session", "use filesystem")
+    await store.add_event(
+        "tool-session",
+        "TOOL_COMPLETED",
+        {"tool": "filesystem_list"},
+    )
+
+    result = AgentRunResult(
+        status=AgentStatus.COMPLETED,
+        content="done",
+        steps=1,
+        session_id="tool-session",
+    )
+    runner = EvalRunner(lambda _scenario: FakeAgent(result), store=store)
+    report = await runner.run(
+        [
+            EvalScenario(
+                name="tool",
+                task="use filesystem",
+                required_tools=["filesystem_list", "filesystem_read"],
+                max_tool_errors=0,
+            )
+        ]
+    )
+
+    assert report.passed == 0
+    assert report.cases[0].missing_required_tools == ["filesystem_read"]
