@@ -7,6 +7,7 @@ from harness.llm.base import (
     ToolCall,
 )
 from harness.llm.deepseek import DeepSeekProvider
+from harness.llm.retry import RetryingLLMProvider
 
 __all__ = [
     "DeepSeekProvider",
@@ -15,5 +16,6 @@ __all__ = [
     "LLMResponse",
     "LLMUsage",
     "Message",
+    "RetryingLLMProvider",
     "ToolCall",
 ]
