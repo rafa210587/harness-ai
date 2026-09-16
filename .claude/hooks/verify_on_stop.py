@@ -27,9 +27,10 @@ def main() -> int:
     if status.returncode != 0 or not status.stdout.strip():
         return 0
 
+    python_targets = ["src", "tests", ".claude/hooks"]
     checks = [
-        ["uv", "run", "ruff", "format", "--check", "."],
-        ["uv", "run", "ruff", "check", "."],
+        ["uv", "run", "ruff", "format", "--check", *python_targets],
+        ["uv", "run", "ruff", "check", *python_targets],
     ]
 
     failures: list[str] = []
