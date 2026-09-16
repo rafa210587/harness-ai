@@ -8,10 +8,13 @@ Read these documents before architectural or roadmap work:
 
 1. `ARCHITECTURE.md`
 2. `EXECUTION_PLAN.md`
-3. `REPOSITORY.md`
-4. `SETUP.md`
+3. `IMPLEMENTATION_STATUS.md`
+4. `REPOSITORY.md`
+5. `SETUP.md`
 
 `EXECUTION_PLAN.md` is the permanent source of truth for build order, phase dependencies, ownership and exit criteria. It does not replace temporary feature specs.
+
+`IMPLEMENTATION_STATUS.md` is the evidence-based snapshot of what already exists, what CI has proved, and what still requires Rafael's Windows machine. Do not reimplement a capability just because the roadmap still describes its planned construction.
 
 ## Core constraints
 
@@ -55,11 +58,12 @@ Investigate relevant code first. Do not infer implementation details from filena
 For a non-trivial change:
 
 1. identify the current roadmap phase in `EXECUTION_PLAN.md`;
-2. verify its entry criteria/dependencies;
-3. classify the change with `feature-workflow`;
-4. inspect the affected module and tests;
-5. create only the temporary artifacts required by the classification;
-6. use the matching technical skill when applicable.
+2. read `IMPLEMENTATION_STATUS.md` to avoid duplicating completed work;
+3. verify entry criteria/dependencies;
+4. classify the change with `feature-workflow`;
+5. inspect the affected module and tests;
+6. create only the temporary artifacts required by the classification;
+7. use the matching technical skill when applicable.
 
 ## Skills
 
@@ -143,13 +147,13 @@ Run the smallest relevant test set first.
 Before a substantial change is complete:
 
 ```powershell
-uv run ruff format --check .
-uv run ruff check .
+uv run ruff format --check src tests .claude/hooks
+uv run ruff check src tests .claude/hooks
 uv run mypy src
 uv run pytest -m "not blender and not unity and not browser_external"
 ```
 
-Run Blender/Unity/external browser tests only when relevant and supported by the environment. Do not change tests merely to make incorrect behavior pass.
+The GitHub workflow must stay green on both the Linux quality job and the Windows core job. Run Blender/Unity/external browser tests only when relevant and supported by the environment. Do not change tests merely to make incorrect behavior pass.
 
 ## Documentation
 
@@ -157,6 +161,7 @@ Follow `.claude/skills/concise-docs/SKILL.md`.
 
 - `ARCHITECTURE.md`: lasting architecture/ADRs.
 - `EXECUTION_PLAN.md`: durable roadmap, phase ownership/dependencies/exit criteria.
+- `IMPLEMENTATION_STATUS.md`: factual implementation/validation evidence.
 - `REPOSITORY.md`: repository boundaries/workflow.
 - `SETUP.md`: environment/dependency setup.
 - `SKILLS_HOOKS.md`: skill/hook model.
