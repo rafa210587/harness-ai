@@ -1,6 +1,8 @@
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from harness.llm import Message, ToolCall
 from harness.storage import SQLiteStore
 from harness.tools import ToolResult
@@ -39,6 +41,7 @@ async def test_sqlite_store_persists_session_message_and_tool_call(tmp_path: Pat
     assert session == ("test task", "completed")
     assert message_count == 2
     assert tool_count == 1
+    assert await store.schema_version() == 1
 
     loaded = await store.get_session("s1")
     assert loaded is not None
@@ -56,6 +59,21 @@ async def test_sqlite_store_persists_session_message_and_tool_call(tmp_path: Pat
     assert len(events) == 1
     assert events[0].event_type == "TEST_EVENT"
     assert events[0].payload == {"value": 1}
+
+
+async def test_sqlite_store_rejects_incompatible_schema_version(tmp_path: Path) -> None:
+    db_path = tmp_path / "harness.db"
+    store = SQLiteStore(db_path)
+    await store.initialize()
+
+    with sqlite3.connect(db_path) as db:
+        db.execute(
+            "UPDATE schema_meta SET value = '99' WHERE key = 'schema_version'"
+        )
+        db.commit()
+
+    with pytest.raises(RuntimeError, match="Unsupported database schema version 99"):
+        await store.initialize()
 
 
 async def test_sqlite_store_persists_and_lists_artifacts(tmp_path: Path) -> None:
