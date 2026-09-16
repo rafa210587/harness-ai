@@ -87,14 +87,8 @@ class ToolRegistry:
         return result.model_copy(
             update={
                 "output": self._redactor.redact(result.output),
-                "error": (
-                    self._redactor.redact_text(result.error)
-                    if result.error is not None
-                    else None
-                ),
-                "artifacts": [
-                    self._redactor.redact_text(path) for path in result.artifacts
-                ],
+                "error": self._redactor.redact_text(result.error) if result.error is not None else None,
+                "artifacts": [self._redactor.redact_text(path) for path in result.artifacts],
             }
         )
 
