@@ -7,12 +7,14 @@ scenarios:
     max_steps: 4
     max_tool_errors: 0
 
-  - name: skill-discovery
+  - name: skill-discovery-and-load
     task: >-
-      Use skill_list before answering. Then report which runtime skills are currently available.
+      Use skill_list, then use skill_load to load the browser-research runtime skill before answering.
+      Briefly state the main constraint that skill places on browser side effects.
     required_tools:
       - skill_list
-    max_steps: 4
+      - skill_load
+    max_steps: 5
     max_tool_errors: 0
 
   - name: filesystem-write-read
