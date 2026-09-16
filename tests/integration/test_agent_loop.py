@@ -4,7 +4,7 @@ from typing import Any, ClassVar
 from pydantic import BaseModel
 
 from harness.hooks import HookDispatcher, PermissionHook
-from harness.llm import LLMProvider, LLMResponse, Message, ToolCall
+from harness.llm import LLMProvider, LLMResponse, LLMUsage, Message, ToolCall
 from harness.runtime import AgentLoop, AgentStatus
 from harness.storage import SQLiteStore
 from harness.tools import (
@@ -69,6 +69,31 @@ async def test_agent_loop_executes_tool_and_returns_final_answer(tmp_path: Path)
     second_call_messages = provider.calls[1]
     tool_message = next(message for message in second_call_messages if message.role == "tool")
     assert "hello.txt" in (tool_message.content or "")
+
+
+async def test_agent_loop_persists_llm_usage(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "harness.db")
+    provider = FakeProvider(
+        [
+            LLMResponse(
+                content="done",
+                finish_reason="stop",
+                usage=LLMUsage(input_tokens=11, output_tokens=3, total_tokens=14),
+            )
+        ]
+    )
+
+    result = await AgentLoop(provider, ToolRegistry(), store=store).run("Measure usage")
+    events = await store.list_events(result.session_id)
+    response_event = next(event for event in events if event.event_type == "LLM_RESPONSE_RECEIVED")
+
+    assert response_event.payload["usage"] == {
+        "input_tokens": 11,
+        "output_tokens": 3,
+        "total_tokens": 14,
+        "cache_hit_tokens": None,
+        "cache_miss_tokens": None,
+    }
 
 
 async def test_agent_loop_blocks_dangerous_tool_without_approval() -> None:
