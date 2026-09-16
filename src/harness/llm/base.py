@@ -9,7 +9,11 @@ MessageRole = Literal["system", "user", "assistant", "tool"]
 
 
 class LLMProviderError(RuntimeError):
-    """Normalized provider boundary error."""
+    """Normalized provider boundary error with retryability metadata."""
+
+    def __init__(self, message: str, *, retryable: bool = False) -> None:
+        super().__init__(message)
+        self.retryable = retryable
 
 
 class ToolCall(BaseModel):
