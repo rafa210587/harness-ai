@@ -1,3 +1,4 @@
+import asyncio
 from typing import ClassVar
 
 from pydantic import BaseModel
@@ -18,6 +19,17 @@ class EchoTool(Tool):
     async def execute(self, arguments: BaseModel) -> ToolResult:
         parsed = EchoArguments.model_validate(arguments.model_dump())
         return ToolResult.ok(parsed.text)
+
+
+class SlowTool(Tool):
+    name: ClassVar[str] = "slow"
+    description: ClassVar[str] = "Wait longer than the registry timeout."
+    risk: ClassVar[ToolRisk] = ToolRisk.READ
+
+    async def execute(self, arguments: BaseModel) -> ToolResult:
+        del arguments
+        await asyncio.sleep(1)
+        return ToolResult.ok("finished")
 
 
 async def test_registry_executes_registered_tool() -> None:
@@ -47,6 +59,17 @@ async def test_registry_normalizes_unknown_tool() -> None:
 
     assert result.success is False
     assert "Unknown tool" in (result.error or "")
+
+
+async def test_registry_enforces_global_tool_timeout() -> None:
+    registry = ToolRegistry(default_timeout_seconds=1)
+    registry.register(SlowTool())
+
+    result = await registry.execute("slow", {})
+
+    assert result.success is False
+    assert result.retryable is False
+    assert result.error == "Tool slow timed out after 1s"
 
 
 def test_registry_exposes_openai_compatible_schema() -> None:
