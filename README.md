@@ -16,6 +16,8 @@ User → DeepSeek → Agent Loop → Tool Registry → filesystem/shell → resu
 
 Browser, Blender and Unity are added as subsequent vertical slices.
 
+The complete build order, manual actions and phase exit criteria are in [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md).
+
 ## Development stack
 
 - Python 3.12
@@ -46,9 +48,10 @@ The first local `uv sync` will create the lockfile if it is not present yet.
 ## Source of truth
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — architecture, ADRs, MVP and execution model.
-- [`REPOSITORY.md`](REPOSITORY.md) — repository structure, boundaries and milestones.
+- [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) — complete implementation roadmap, ownership and exit criteria.
+- [`REPOSITORY.md`](REPOSITORY.md) — repository structure and boundaries.
 - [`SETUP.md`](SETUP.md) — complete machine/environment setup.
-- [`AGENTS.md`](AGENTS.md) — cross-agent engineering rules.
+- [`AGENTS.md`](AGENTS.md) — cross-agent engineering rules and feature workflow.
 - [`SKILLS_HOOKS.md`](SKILLS_HOOKS.md) — skills, development hooks and runtime hooks.
 - [`CLAUDE.md`](CLAUDE.md) — Claude Code compatibility entrypoint.
 
