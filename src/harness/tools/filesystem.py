@@ -143,9 +143,11 @@ class FilesystemPatchTool(Tool):
         content = path.read_text(encoding="utf-8")
         matches = content.count(args.old)
         if matches != args.expected_replacements:
-            return ToolResult.fail(
-                f"Expected {args.expected_replacements} replacements in {args.path}, found {matches}"
+            error = (
+                f"Expected {args.expected_replacements} replacements in {args.path}, "
+                f"found {matches}"
             )
+            return ToolResult.fail(error)
         updated = content.replace(args.old, args.new, args.expected_replacements)
         path.write_text(updated, encoding="utf-8")
         return ToolResult.ok(
