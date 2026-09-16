@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from harness.config import Settings
+from harness.config import PermissionAction, Settings, load_settings
 
 
 def test_settings_defaults(monkeypatch) -> None:
@@ -21,3 +21,52 @@ def test_settings_environment_override(monkeypatch) -> None:
 
     assert settings.deepseek_model == "custom-model"
     assert settings.agent_max_steps == 12
+
+
+def test_load_settings_precedence_and_permissions(tmp_path: Path, monkeypatch) -> None:
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "harness.yaml").write_text(
+        """
+workspace:
+  root: ./yaml-workspace
+agent:
+  max_steps: 7
+browser:
+  headless: true
+""".strip(),
+        encoding="utf-8",
+    )
+    (config_dir / "models.yaml").write_text(
+        """
+providers:
+  deepseek:
+    base_url: https://yaml.example
+    model: yaml-model
+""".strip(),
+        encoding="utf-8",
+    )
+    (config_dir / "permissions.yaml").write_text(
+        """
+read: auto
+write: approval
+dangerous: deny
+tools:
+  shell_run: approval
+""".strip(),
+        encoding="utf-8",
+    )
+    env_file = tmp_path / ".env"
+    env_file.write_text("DEEPSEEK_MODEL=dotenv-model\n", encoding="utf-8")
+    monkeypatch.setenv("AGENT_MAX_STEPS", "13")
+
+    settings = load_settings(config_dir=config_dir, env_file=env_file)
+
+    assert settings.harness_workspace == Path("yaml-workspace")
+    assert settings.harness_browser_headless is True
+    assert settings.deepseek_base_url == "https://yaml.example"
+    assert settings.deepseek_model == "dotenv-model"
+    assert settings.agent_max_steps == 13
+    assert settings.permissions.write is PermissionAction.APPROVAL
+    assert settings.permissions.dangerous is PermissionAction.DENY
+    assert settings.permissions.action_for("shell_run", "dangerous") is PermissionAction.APPROVAL
