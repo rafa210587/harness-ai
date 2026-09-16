@@ -261,8 +261,9 @@ class AgentLoop:
                             Message(
                                 role="system",
                                 content=(
-                                    "Internal verification failed. Continue working on the original task "
-                                    f"and correct the result before finishing. Feedback: {feedback}"
+                                    "Internal verification failed. Continue working on "
+                                    "the original task and correct the result before finishing. "
+                                    f"Feedback: {feedback}"
                                 ),
                             ),
                         )
