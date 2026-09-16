@@ -2,21 +2,30 @@
 
 A small local AI harness for tool-driven computer workflows.
 
-The MVP uses DeepSeek as the first LLM provider and is designed to expose local capabilities as explicit tools: filesystem, shell, browser, Blender, Unity, images, screenshots and later optional desktop automation.
+The MVP uses DeepSeek as the first LLM provider and exposes local capabilities as explicit tools: filesystem, shell, browser, Blender, Unity, images, screenshots and optional runtime skills. Desktop coordinate automation remains a later fallback, not the primary integration model.
 
 ## Status
 
-Repository bootstrap / MVP architecture.
-
-The first implementation milestone is:
+The core harness is implemented and covered by automated tests. Current capabilities include:
 
 ```text
-User → DeepSeek → Agent Loop → Tool Registry → filesystem/shell → result → DeepSeek
+DeepSeek provider
+→ provider-neutral timeout/retry
+→ Agent Loop
+→ Tool Registry
+→ filesystem/shell/browser/Blender/Unity tools
+→ deterministic permissions/approvals
+→ SQLite persistence/artifacts/events
+→ verification/self-correction
+→ context compaction
+→ runtime skills
+→ evals/metrics
 ```
 
-Browser, Blender and Unity are added as subsequent vertical slices.
+Real DeepSeek, Chromium, Blender and Unity validation on the target Windows machine remains a separate acceptance gate.
 
-The complete build order, manual actions and phase exit criteria are in [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md).
+- [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) defines the durable build order and exit criteria.
+- [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) records what is implemented, what CI proves, and what still needs local validation.
 
 ## Development stack
 
@@ -26,8 +35,8 @@ The complete build order, manual actions and phase exit criteria are in [`EXECUT
 - Pydantic for contracts/configuration
 - SQLite / `aiosqlite` for persistence
 - Playwright for browser automation
-- Blender CLI + Python for the first Blender integration
-- Unity CLI + Editor scripts for the first Unity integration
+- Blender CLI + Python for Blender integration
+- Unity CLI + Editor scripts for Unity integration
 
 ## Start
 
@@ -43,12 +52,18 @@ Copy-Item .env.example .env
 uv run harness doctor
 ```
 
-The first local `uv sync` will create the lockfile if it is not present yet.
+After configuring credentials/application paths:
+
+```powershell
+uv run harness doctor --online
+uv run harness eval evals/smoke.yaml --json-out data/smoke-report.json
+```
 
 ## Source of truth
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — architecture, ADRs, MVP and execution model.
 - [`EXECUTION_PLAN.md`](EXECUTION_PLAN.md) — complete implementation roadmap, ownership and exit criteria.
+- [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) — evidence-based current status.
 - [`REPOSITORY.md`](REPOSITORY.md) — repository structure and boundaries.
 - [`SETUP.md`](SETUP.md) — complete machine/environment setup.
 - [`AGENTS.md`](AGENTS.md) — cross-agent engineering rules and feature workflow.
