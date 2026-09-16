@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/guard_destructive.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/post_python_edit.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/verify_on_stop.py"
+          }
+        ]
+      }
+    ]
+  }
+}
