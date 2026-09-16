@@ -50,10 +50,15 @@ class ShellRunTool(Tool):
                 retryable=False,
             )
 
-        return ToolResult.ok(
-            {
-                "exit_code": process.returncode,
-                "stdout": stdout_bytes.decode(errors="replace"),
-                "stderr": stderr_bytes.decode(errors="replace"),
-            }
-        )
+        output = {
+            "exit_code": process.returncode,
+            "stdout": stdout_bytes.decode(errors="replace"),
+            "stderr": stderr_bytes.decode(errors="replace"),
+        }
+        if process.returncode != 0:
+            return ToolResult(
+                success=False,
+                output=output,
+                error=f"Command exited with code {process.returncode}",
+            )
+        return ToolResult.ok(output)
