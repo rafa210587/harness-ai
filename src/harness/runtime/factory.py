@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from harness.blender import BlenderController
 from harness.browser import PlaywrightController
 from harness.config import Settings
 from harness.hooks import HookDispatcher, PermissionHook
@@ -7,6 +8,8 @@ from harness.llm import DeepSeekProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
 from harness.storage import SQLiteStore
 from harness.tools import (
+    BlenderExecutePythonTool,
+    BlenderRenderTool,
     BrowserClickTool,
     BrowserFillTool,
     BrowserNavigateTool,
@@ -19,8 +22,11 @@ from harness.tools import (
     FilesystemWriteTool,
     ShellRunTool,
     ToolRegistry,
+    UnityExecuteEditorScriptTool,
+    UnityProjectInfoTool,
     WorkspacePaths,
 )
+from harness.unity import UnityController
 
 
 def build_tool_registry(settings: Settings) -> ToolRegistry:
@@ -30,6 +36,8 @@ def build_tool_registry(settings: Settings) -> ToolRegistry:
         settings.harness_browser_profile,
         headless=settings.harness_browser_headless,
     )
+    blender = BlenderController(settings.blender_path, paths)
+    unity = UnityController(settings.unity_path, paths)
 
     registry = ToolRegistry()
     registry.register(FilesystemReadTool(paths))
@@ -43,6 +51,10 @@ def build_tool_registry(settings: Settings) -> ToolRegistry:
     registry.register(BrowserFillTool(browser))
     registry.register(BrowserWaitTool(browser))
     registry.register(BrowserScreenshotTool(browser, paths))
+    registry.register(BlenderExecutePythonTool(blender, paths))
+    registry.register(BlenderRenderTool(blender, paths))
+    registry.register(UnityProjectInfoTool(paths))
+    registry.register(UnityExecuteEditorScriptTool(unity, paths))
     return registry
 
 
