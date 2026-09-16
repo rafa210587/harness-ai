@@ -1,0 +1,18 @@
+workspace:
+  root: ./workspace
+
+data:
+  root: ./data
+
+database:
+  path: ./data/harness.db
+
+browser:
+  persistent_profile: true
+  profile_path: ./data/browser-profile
+  headless: false
+
+agent:
+  max_steps: 50
+  max_consecutive_errors: 5
+  max_tool_runtime_seconds: 300
