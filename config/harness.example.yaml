@@ -19,6 +19,9 @@ agent:
   max_steps: 50
   max_consecutive_errors: 5
   max_tool_runtime_seconds: 300
+  llm_timeout_seconds: 120
+  llm_max_attempts: 3
+  llm_retry_base_seconds: 1.0
 
 context:
   max_messages: 40
