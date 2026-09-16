@@ -1,3 +1,11 @@
-from harness.llm.base import LLMProvider, LLMResponse, Message, ToolCall
+from harness.llm.base import LLMProvider, LLMProviderError, LLMResponse, Message, ToolCall
+from harness.llm.deepseek import DeepSeekProvider
 
-__all__ = ["LLMProvider", "LLMResponse", "Message", "ToolCall"]
+__all__ = [
+    "DeepSeekProvider",
+    "LLMProvider",
+    "LLMProviderError",
+    "LLMResponse",
+    "Message",
+    "ToolCall",
+]
