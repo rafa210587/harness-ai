@@ -48,3 +48,30 @@ def test_runtime_skill_loader_blocks_direct_path_escape(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Invalid skill name"):
         loader.load("../outside")
+
+
+def test_runtime_skill_loader_blocks_symlinked_skill_file_escape(tmp_path: Path) -> None:
+    outside = tmp_path / "outside.md"
+    outside.write_text("secret", encoding="utf-8")
+    skill_dir = tmp_path / "linked-skill"
+    skill_dir.mkdir()
+    link = skill_dir / "SKILL.md"
+    try:
+        link.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation is not available in this environment")
+
+    loader = RuntimeSkillLoader(tmp_path)
+
+    with pytest.raises(ValueError, match="Skill file escapes configured root"):
+        loader.load("linked-skill")
+    assert "linked-skill" not in loader.list()
+
+
+def test_runtime_skill_loader_rejects_oversized_skill(tmp_path: Path) -> None:
+    _create_skill(tmp_path, "large-skill", "x" * 33)
+    loader = RuntimeSkillLoader(tmp_path, max_skill_bytes=32)
+
+    with pytest.raises(ValueError, match="too large"):
+        loader.load("large-skill")
+    assert "large-skill" not in loader.list()
