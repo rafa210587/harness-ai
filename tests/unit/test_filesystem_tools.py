@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from harness.tools import (
     FilesystemCopyTool,
     FilesystemListTool,
@@ -88,9 +90,22 @@ async def test_patch_rejects_ambiguous_replacement(tmp_path: Path) -> None:
 def test_workspace_paths_reject_escape(tmp_path: Path) -> None:
     paths = WorkspacePaths(tmp_path)
 
-    try:
+    with pytest.raises(ValueError, match="escapes workspace"):
         paths.resolve("../outside.txt")
-    except ValueError as exc:
-        assert "escapes workspace" in str(exc)
-    else:
-        raise AssertionError("workspace escape should be rejected")
+
+
+def test_workspace_paths_reject_symlink_escape(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    outside.mkdir()
+    link = workspace / "external"
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation is not available in this environment")
+
+    paths = WorkspacePaths(workspace)
+
+    with pytest.raises(ValueError, match="escapes workspace"):
+        paths.resolve("external/secret.txt")
