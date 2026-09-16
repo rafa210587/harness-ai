@@ -4,6 +4,7 @@ from harness.blender import BlenderController
 from harness.browser import PlaywrightController
 from harness.config import Settings
 from harness.hooks import HookDispatcher, PermissionHook
+from harness.images import ImageProvider
 from harness.llm import DeepSeekProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
 from harness.storage import SQLiteStore
@@ -24,16 +25,24 @@ from harness.tools import (
     FilesystemReadTool,
     FilesystemSearchTool,
     FilesystemWriteTool,
+    ImageGenerateTool,
     ShellRunTool,
     ToolRegistry,
     UnityExecuteEditorScriptTool,
     UnityProjectInfoTool,
+    VisionInspectTool,
     WorkspacePaths,
 )
 from harness.unity import UnityController
+from harness.vision import VisionProvider
 
 
-def build_tool_registry(settings: Settings) -> ToolRegistry:
+def build_tool_registry(
+    settings: Settings,
+    *,
+    image_provider: ImageProvider | None = None,
+    vision_provider: VisionProvider | None = None,
+) -> ToolRegistry:
     settings.harness_workspace.mkdir(parents=True, exist_ok=True)
     paths = WorkspacePaths(settings.harness_workspace)
     browser = PlaywrightController(
@@ -63,6 +72,10 @@ def build_tool_registry(settings: Settings) -> ToolRegistry:
     registry.register(BlenderRenderTool(blender, paths))
     registry.register(UnityProjectInfoTool(paths))
     registry.register(UnityExecuteEditorScriptTool(unity, paths))
+    if image_provider is not None:
+        registry.register(ImageGenerateTool(image_provider, paths))
+    if vision_provider is not None:
+        registry.register(VisionInspectTool(vision_provider, paths))
     return registry
 
 
@@ -70,9 +83,15 @@ def build_agent_loop(
     settings: Settings,
     *,
     approval_handler: ApprovalHandler | None = None,
+    image_provider: ImageProvider | None = None,
+    vision_provider: VisionProvider | None = None,
 ) -> AgentLoop:
     settings.harness_data_dir.mkdir(parents=True, exist_ok=True)
-    registry = build_tool_registry(settings)
+    registry = build_tool_registry(
+        settings,
+        image_provider=image_provider,
+        vision_provider=vision_provider,
+    )
     hooks = HookDispatcher([PermissionHook(settings.permissions)])
     provider = DeepSeekProvider(settings)
     store = SQLiteStore(settings.harness_data_dir / "harness.db")
