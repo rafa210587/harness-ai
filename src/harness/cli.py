@@ -126,6 +126,39 @@ def session_events_command(session_id: str) -> None:
     asyncio.run(load())
 
 
+@session_app.command("artifacts")
+def session_artifacts_command(session_id: str) -> None:
+    """Show artifacts produced by one persisted session."""
+    settings = load_settings()
+
+    async def load() -> None:
+        store = SQLiteStore(settings.harness_data_dir / "harness.db")
+        await store.initialize()
+        session = await store.get_session(session_id)
+        if session is None:
+            console.print(f"[red]Session not found:[/] {session_id}")
+            raise typer.Exit(code=1)
+
+        artifacts = await store.list_artifacts(session_id)
+        table = Table(title=f"Artifacts {session_id}")
+        table.add_column("ID")
+        table.add_column("Type")
+        table.add_column("Path")
+        table.add_column("Created by")
+        table.add_column("Created")
+        for artifact in artifacts:
+            table.add_row(
+                artifact.id,
+                artifact.artifact_type,
+                artifact.path,
+                artifact.created_by,
+                artifact.created_at,
+            )
+        console.print(table)
+
+    asyncio.run(load())
+
+
 @app.command("run")
 def run_command(task: str) -> None:
     """Run one task with the configured DeepSeek provider."""
