@@ -3,7 +3,6 @@ from typer.testing import CliRunner
 from harness import __version__
 from harness.cli import app
 
-
 runner = CliRunner()
 
 

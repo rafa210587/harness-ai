@@ -40,7 +40,10 @@ def main() -> int:
             failures.append(f"$ {' '.join(command)}\n{output}")
 
     if failures:
-        reason = "Repository verification failed. Fix these checks before finishing:\n\n" + "\n\n".join(failures)
+        reason = (
+            "Repository verification failed. Fix these checks before finishing:\n\n"
+            + "\n\n".join(failures)
+        )
         print(json.dumps({"decision": "block", "reason": reason[:8000]}))
 
     return 0

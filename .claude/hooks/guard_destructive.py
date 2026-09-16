@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 DANGEROUS_COMMANDS = (
     re.compile(r"\bgit\s+reset\s+--hard\b", re.IGNORECASE),
     re.compile(r"\bgit\s+clean\s+-[^\s]*f[^\s]*d|\bgit\s+clean\s+-[^\s]*d[^\s]*f", re.IGNORECASE),
@@ -58,7 +57,10 @@ def main() -> int:
     if tool_name in {"Bash", "PowerShell"}:
         command = str(tool_input.get("command", ""))
         if any(pattern.search(command) for pattern in DANGEROUS_COMMANDS):
-            deny("Destructive shell/git command blocked by repository hook. Ask the user explicitly before running it.")
+            deny(
+                "Destructive shell/git command blocked by repository hook. "
+                "Ask the user explicitly before running it."
+            )
             return 0
 
     if tool_name in {"Write", "Edit"}:

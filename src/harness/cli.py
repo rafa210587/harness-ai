@@ -94,7 +94,11 @@ def doctor() -> None:
         ("workspace writable", workspace.exists() and os.access(workspace, os.W_OK), str(workspace.resolve())),
         ("data directory exists", data_dir.exists(), str(data_dir.resolve())),
         ("data directory writable", data_dir.exists() and os.access(data_dir, os.W_OK), str(data_dir.resolve())),
-        ("DeepSeek API key", settings.deepseek_api_key is not None, "configured" if settings.deepseek_api_key else "not set"),
+        (
+            "DeepSeek API key",
+            settings.deepseek_api_key is not None,
+            "configured" if settings.deepseek_api_key else "not set",
+        ),
         (
             "Blender executable",
             _configured_executable_exists(settings.blender_path),
