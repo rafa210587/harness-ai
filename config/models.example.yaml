@@ -1,0 +1,9 @@
+default_model:
+  provider: deepseek
+  model: ${DEEPSEEK_MODEL}
+
+providers:
+  deepseek:
+    api_key: ${DEEPSEEK_API_KEY}
+    base_url: ${DEEPSEEK_BASE_URL}
+    model: ${DEEPSEEK_MODEL}
