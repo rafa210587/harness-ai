@@ -16,12 +16,15 @@ from harness.config import load_settings
 from harness.hooks import BeforeToolEvent
 from harness.llm import LLMProviderError
 from harness.runtime import AgentStatus, build_agent_loop, build_tool_registry
+from harness.storage import SQLiteStore
 
 app = typer.Typer(
     name="harness",
     help="Local AI harness for tool-driven computer workflows.",
     no_args_is_help=True,
 )
+session_app = typer.Typer(help="Inspect persisted harness sessions.")
+app.add_typer(session_app, name="session")
 console = Console()
 
 
@@ -44,6 +47,80 @@ def tools_command() -> None:
     for tool in registry.tools():
         table.add_row(tool.name, tool.risk.value, tool.description)
     console.print(table)
+
+
+@app.command("sessions")
+def sessions_command(limit: int = typer.Option(20, min=1, max=200)) -> None:
+    """List persisted sessions, newest first."""
+    settings = load_settings()
+
+    async def load() -> None:
+        store = SQLiteStore(settings.harness_data_dir / "harness.db")
+        await store.initialize()
+        sessions = await store.list_sessions(limit=limit)
+
+        table = Table(title="Harness sessions")
+        table.add_column("ID")
+        table.add_column("Status")
+        table.add_column("Task")
+        table.add_column("Updated")
+        for session in sessions:
+            table.add_row(session.id, session.status, session.task, session.updated_at)
+        console.print(table)
+
+    asyncio.run(load())
+
+
+@session_app.command("show")
+def session_show_command(session_id: str) -> None:
+    """Show one persisted session."""
+    settings = load_settings()
+
+    async def load() -> None:
+        store = SQLiteStore(settings.harness_data_dir / "harness.db")
+        await store.initialize()
+        session = await store.get_session(session_id)
+        if session is None:
+            console.print(f"[red]Session not found:[/] {session_id}")
+            raise typer.Exit(code=1)
+
+        table = Table(title=f"Session {session.id}")
+        table.add_column("Field")
+        table.add_column("Value")
+        table.add_row("status", session.status)
+        table.add_row("task", session.task)
+        table.add_row("reason", session.reason or "")
+        table.add_row("created", session.created_at)
+        table.add_row("updated", session.updated_at)
+        console.print(table)
+
+    asyncio.run(load())
+
+
+@session_app.command("events")
+def session_events_command(session_id: str) -> None:
+    """Show structured events for one session."""
+    settings = load_settings()
+
+    async def load() -> None:
+        store = SQLiteStore(settings.harness_data_dir / "harness.db")
+        await store.initialize()
+        session = await store.get_session(session_id)
+        if session is None:
+            console.print(f"[red]Session not found:[/] {session_id}")
+            raise typer.Exit(code=1)
+
+        events = await store.list_events(session_id)
+        table = Table(title=f"Events {session_id}")
+        table.add_column("#")
+        table.add_column("Type")
+        table.add_column("Payload")
+        table.add_column("Created")
+        for event in events:
+            table.add_row(str(event.id), event.event_type, str(event.payload), event.created_at)
+        console.print(table)
+
+    asyncio.run(load())
 
 
 @app.command("run")
