@@ -51,9 +51,11 @@ def test_runtime_skill_loader_blocks_direct_path_escape(tmp_path: Path) -> None:
 
 
 def test_runtime_skill_loader_blocks_symlinked_skill_file_escape(tmp_path: Path) -> None:
+    root = tmp_path / "skills"
+    root.mkdir()
     outside = tmp_path / "outside.md"
     outside.write_text("secret", encoding="utf-8")
-    skill_dir = tmp_path / "linked-skill"
+    skill_dir = root / "linked-skill"
     skill_dir.mkdir()
     link = skill_dir / "SKILL.md"
     try:
@@ -61,7 +63,7 @@ def test_runtime_skill_loader_blocks_symlinked_skill_file_escape(tmp_path: Path)
     except (OSError, NotImplementedError):
         pytest.skip("symlink creation is not available in this environment")
 
-    loader = RuntimeSkillLoader(tmp_path)
+    loader = RuntimeSkillLoader(root)
 
     with pytest.raises(ValueError, match="Skill file escapes configured root"):
         loader.load("linked-skill")
