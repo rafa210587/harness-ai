@@ -24,7 +24,9 @@ class PlaywrightController:
             user_data_dir=str(self._profile_dir),
             headless=self._headless,
         )
-        self._page = self._context.pages[0] if self._context.pages else await self._context.new_page()
+        self._page = (
+            self._context.pages[0] if self._context.pages else await self._context.new_page()
+        )
 
     async def close(self) -> None:
         if self._context is not None:
