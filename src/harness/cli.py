@@ -15,7 +15,7 @@ from harness import __version__
 from harness.config import load_settings
 from harness.hooks import BeforeToolEvent
 from harness.llm import LLMProviderError
-from harness.runtime import AgentStatus, build_agent_loop, build_tool_registry
+from harness.runtime import AgentRunResult, AgentStatus, build_agent_loop, build_tool_registry
 from harness.storage import SQLiteStore
 
 app = typer.Typer(
@@ -221,7 +221,7 @@ async def _interactive_approval(event: BeforeToolEvent) -> bool:
     return typer.confirm("Allow this tool call?", default=False)
 
 
-def _render_run_result(result) -> None:
+def _render_run_result(result: AgentRunResult) -> None:
     if result.status is AgentStatus.COMPLETED:
         console.print(result.content or "")
         return
