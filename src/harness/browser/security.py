@@ -72,7 +72,8 @@ async def ensure_public_http_url_resolved(
             ) from exc
         if not address.is_global:
             raise ValueError(
-                f"Browser navigation target resolved to a non-public address: {hostname} -> {address}"
+                "Browser navigation target resolved to a non-public address: "
+                f"{hostname} -> {address}"
             )
 
 
