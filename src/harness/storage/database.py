@@ -29,6 +29,21 @@ class EventRecord(BaseModel):
     created_at: str
 
 
+class ApprovalRecord(BaseModel):
+    id: int
+    session_id: str
+    call_id: str
+    tool_name: str
+    arguments: dict[str, Any]
+    status: str
+    reason: str | None = None
+    created_at: str
+    decided_at: str | None = None
+
+    def tool_call(self) -> ToolCall:
+        return ToolCall(id=self.call_id, name=self.tool_name, arguments=self.arguments)
+
+
 class SQLiteStore:
     def __init__(self, path: Path) -> None:
         self._path = path
@@ -66,6 +81,19 @@ class SQLiteStore:
                     arguments_json TEXT NOT NULL,
                     result_json TEXT NOT NULL,
                     created_at TEXT NOT NULL,
+                    FOREIGN KEY(session_id) REFERENCES sessions(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS approvals (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL,
+                    call_id TEXT NOT NULL,
+                    tool_name TEXT NOT NULL,
+                    arguments_json TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    reason TEXT,
+                    created_at TEXT NOT NULL,
+                    decided_at TEXT,
                     FOREIGN KEY(session_id) REFERENCES sessions(id)
                 );
 
@@ -132,6 +160,44 @@ class SQLiteStore:
             )
             row = await cursor.fetchone()
         return SessionRecord(**dict(row)) if row is not None else None
+
+    async def set_session_status(
+        self,
+        session_id: str,
+        status: str,
+        reason: str | None = None,
+    ) -> None:
+        async with aiosqlite.connect(self._path) as db:
+            await db.execute(
+                "UPDATE sessions SET status = ?, reason = ?, updated_at = ? WHERE id = ?",
+                (status, reason, _utc_now(), session_id),
+            )
+            await db.commit()
+
+    async def list_messages(self, session_id: str) -> list[Message]:
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT role, content, tool_call_id, tool_calls_json
+                FROM messages
+                WHERE session_id = ?
+                ORDER BY id ASC
+                """,
+                (session_id,),
+            )
+            rows = await cursor.fetchall()
+        return [
+            Message.model_validate(
+                {
+                    "role": row["role"],
+                    "content": row["content"],
+                    "tool_call_id": row["tool_call_id"],
+                    "tool_calls": json.loads(row["tool_calls_json"]),
+                }
+            )
+            for row in rows
+        ]
 
     async def list_events(self, session_id: str) -> list[EventRecord]:
         async with aiosqlite.connect(self._path) as db:
@@ -200,6 +266,68 @@ class SQLiteStore:
             )
             await db.commit()
 
+    async def create_approval(
+        self,
+        session_id: str,
+        call: ToolCall,
+        reason: str | None,
+    ) -> None:
+        async with aiosqlite.connect(self._path) as db:
+            await db.execute(
+                """
+                INSERT INTO approvals(
+                    session_id, call_id, tool_name, arguments_json, status, reason, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    call.id,
+                    call.name,
+                    json.dumps(call.arguments),
+                    "pending",
+                    reason,
+                    _utc_now(),
+                ),
+            )
+            await db.commit()
+
+    async def get_pending_approval(self, session_id: str) -> ApprovalRecord | None:
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT id, session_id, call_id, tool_name, arguments_json, status,
+                       reason, created_at, decided_at
+                FROM approvals
+                WHERE session_id = ? AND status = 'pending'
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (session_id,),
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        return ApprovalRecord(
+            id=row["id"],
+            session_id=row["session_id"],
+            call_id=row["call_id"],
+            tool_name=row["tool_name"],
+            arguments=json.loads(row["arguments_json"]),
+            status=row["status"],
+            reason=row["reason"],
+            created_at=row["created_at"],
+            decided_at=row["decided_at"],
+        )
+
+    async def decide_approval(self, approval_id: int, approved: bool) -> None:
+        async with aiosqlite.connect(self._path) as db:
+            await db.execute(
+                "UPDATE approvals SET status = ?, decided_at = ? WHERE id = ?",
+                ("approved" if approved else "denied", _utc_now(), approval_id),
+            )
+            await db.commit()
+
     async def add_event(self, session_id: str, event_type: str, payload: dict[str, object]) -> None:
         async with aiosqlite.connect(self._path) as db:
             await db.execute(
@@ -212,12 +340,7 @@ class SQLiteStore:
             await db.commit()
 
     async def finish_session(self, session_id: str, status: str, reason: str | None = None) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                "UPDATE sessions SET status = ?, reason = ?, updated_at = ? WHERE id = ?",
-                (status, reason, _utc_now(), session_id),
-            )
-            await db.commit()
+        await self.set_session_status(session_id, status, reason)
 
     async def add_artifact(
         self,
