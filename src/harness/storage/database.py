@@ -3,11 +3,30 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import aiosqlite
+from pydantic import BaseModel
 
 from harness.llm import Message, ToolCall
 from harness.tools import ToolResult
+
+
+class SessionRecord(BaseModel):
+    id: str
+    task: str
+    status: str
+    reason: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class EventRecord(BaseModel):
+    id: int
+    session_id: str
+    event_type: str
+    payload: dict[str, Any]
+    created_at: str
 
 
 class SQLiteStore:
@@ -84,6 +103,59 @@ class SQLiteStore:
                 (session_id, task, "running", now, now),
             )
             await db.commit()
+
+    async def list_sessions(self, limit: int = 20) -> list[SessionRecord]:
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT id, task, status, reason, created_at, updated_at
+                FROM sessions
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+            rows = await cursor.fetchall()
+        return [SessionRecord(**dict(row)) for row in rows]
+
+    async def get_session(self, session_id: str) -> SessionRecord | None:
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT id, task, status, reason, created_at, updated_at
+                FROM sessions
+                WHERE id = ?
+                """,
+                (session_id,),
+            )
+            row = await cursor.fetchone()
+        return SessionRecord(**dict(row)) if row is not None else None
+
+    async def list_events(self, session_id: str) -> list[EventRecord]:
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT id, session_id, event_type, payload_json, created_at
+                FROM events
+                WHERE session_id = ?
+                ORDER BY id ASC
+                """,
+                (session_id,),
+            )
+            rows = await cursor.fetchall()
+        return [
+            EventRecord(
+                id=row["id"],
+                session_id=row["session_id"],
+                event_type=row["event_type"],
+                payload=json.loads(row["payload_json"]),
+                created_at=row["created_at"],
+            )
+            for row in rows
+        ]
 
     async def add_message(self, session_id: str, message: Message) -> None:
         async with aiosqlite.connect(self._path) as db:
