@@ -234,8 +234,10 @@ class FilesystemCopyTool(Tool):
 
 class FilesystemMoveTool(Tool):
     name: ClassVar[str] = "filesystem_move"
-    description: ClassVar[str] = "Move a file or directory inside the workspace."
-    risk: ClassVar[ToolRisk] = ToolRisk.WRITE
+    description: ClassVar[str] = (
+        "Move a file or directory inside the workspace. Moving removes the source path."
+    )
+    risk: ClassVar[ToolRisk] = ToolRisk.DANGEROUS
     arguments_model: ClassVar[type[BaseModel]] = TransferArguments
 
     def __init__(self, paths: WorkspacePaths) -> None:
