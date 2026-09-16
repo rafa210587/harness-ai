@@ -22,6 +22,7 @@ from harness.tools.filesystem import (
 from harness.tools.image import ImageGenerateTool
 from harness.tools.registry import ToolRegistry
 from harness.tools.shell import ShellRunTool
+from harness.tools.skills import SkillListTool, SkillLoadTool
 from harness.tools.unity import UnityExecuteEditorScriptTool, UnityProjectInfoTool
 from harness.tools.vision import VisionInspectTool
 
@@ -44,6 +45,8 @@ __all__ = [
     "FilesystemWriteTool",
     "ImageGenerateTool",
     "ShellRunTool",
+    "SkillListTool",
+    "SkillLoadTool",
     "Tool",
     "ToolRegistry",
     "ToolResult",
