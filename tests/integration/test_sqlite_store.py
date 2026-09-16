@@ -58,6 +58,31 @@ async def test_sqlite_store_persists_session_message_and_tool_call(tmp_path: Pat
     assert events[0].payload == {"value": 1}
 
 
+async def test_sqlite_store_persists_and_lists_artifacts(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "harness.db")
+    await store.initialize()
+    await store.create_session("s1", "artifact task")
+
+    await store.add_artifact(
+        "artifact-1",
+        "s1",
+        "png",
+        "artifacts/render.png",
+        "blender_render",
+        {"frame": 1},
+    )
+
+    artifacts = await store.list_artifacts("s1")
+
+    assert len(artifacts) == 1
+    artifact = artifacts[0]
+    assert artifact.id == "artifact-1"
+    assert artifact.artifact_type == "png"
+    assert artifact.path == "artifacts/render.png"
+    assert artifact.created_by == "blender_render"
+    assert artifact.metadata == {"frame": 1}
+
+
 async def test_sqlite_store_persists_and_decides_approval(tmp_path: Path) -> None:
     store = SQLiteStore(tmp_path / "harness.db")
     await store.initialize()
