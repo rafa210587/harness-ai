@@ -56,7 +56,10 @@ class LLMContextCompactor:
                         "facts. Return only the working-memory summary."
                     ),
                 ),
-                Message(role="user", content=_serialize_messages(old_messages, self._max_message_chars)),
+                Message(
+                    role="user",
+                    content=_serialize_messages(old_messages, self._max_message_chars),
+                ),
             ],
             tools=None,
         )
