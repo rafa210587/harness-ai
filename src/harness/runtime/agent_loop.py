@@ -204,6 +204,9 @@ class AgentLoop:
                     "tool_call_count": len(response.tool_calls),
                     "finish_reason": response.finish_reason or "",
                     "duration_ms": _duration_ms(llm_started),
+                    "usage": (
+                        response.usage.model_dump(mode="json") if response.usage is not None else {}
+                    ),
                 },
             )
 
