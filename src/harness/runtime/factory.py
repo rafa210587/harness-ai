@@ -5,7 +5,7 @@ from harness.browser import PlaywrightController
 from harness.config import Settings
 from harness.hooks import HookDispatcher, PermissionHook
 from harness.images import ImageProvider
-from harness.llm import DeepSeekProvider
+from harness.llm import DeepSeekProvider, RetryingLLMProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
 from harness.runtime.context import LLMContextCompactor
 from harness.runtime.verification import LatestImageVisionVerifier, RunVerifier
@@ -103,7 +103,13 @@ def build_agent_loop(
         vision_provider=vision_provider,
     )
     hooks = HookDispatcher([PermissionHook(settings.permissions)])
-    provider = DeepSeekProvider(settings)
+    base_provider = DeepSeekProvider(settings)
+    provider = RetryingLLMProvider(
+        base_provider,
+        timeout_seconds=settings.agent_llm_timeout_seconds,
+        max_attempts=settings.agent_llm_max_attempts,
+        retry_base_seconds=settings.agent_llm_retry_base_seconds,
+    )
     context_compactor = LLMContextCompactor(
         provider,
         keep_recent=settings.context_keep_recent,
