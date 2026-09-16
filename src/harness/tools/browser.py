@@ -5,7 +5,7 @@ from typing import ClassVar, Protocol
 
 from pydantic import BaseModel, Field, HttpUrl
 
-from harness.tools.base import Tool, ToolResult, ToolRisk
+from harness.tools.base import EmptyArguments, Tool, ToolResult, ToolRisk
 from harness.tools.filesystem import WorkspacePaths
 
 
@@ -62,7 +62,7 @@ class BrowserReadPageTool(Tool):
     name: ClassVar[str] = "browser_read_page"
     description: ClassVar[str] = "Read the current page title, URL, and visible body text."
     risk: ClassVar[ToolRisk] = ToolRisk.READ
-    arguments_model: ClassVar[type[BaseModel]] = BaseModel
+    arguments_model: ClassVar[type[BaseModel]] = EmptyArguments
 
     def __init__(self, controller: BrowserController) -> None:
         self._controller = controller
