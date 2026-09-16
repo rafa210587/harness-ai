@@ -29,6 +29,16 @@ class EventRecord(BaseModel):
     created_at: str
 
 
+class ArtifactRecord(BaseModel):
+    id: str
+    session_id: str
+    artifact_type: str
+    path: str
+    created_by: str
+    metadata: dict[str, Any]
+    created_at: str
+
+
 class ApprovalRecord(BaseModel):
     id: int
     session_id: str
@@ -218,6 +228,33 @@ class SQLiteStore:
                 session_id=row["session_id"],
                 event_type=row["event_type"],
                 payload=json.loads(row["payload_json"]),
+                created_at=row["created_at"],
+            )
+            for row in rows
+        ]
+
+    async def list_artifacts(self, session_id: str) -> list[ArtifactRecord]:
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT id, session_id, artifact_type, path, created_by,
+                       metadata_json, created_at
+                FROM artifacts
+                WHERE session_id = ?
+                ORDER BY created_at ASC, id ASC
+                """,
+                (session_id,),
+            )
+            rows = await cursor.fetchall()
+        return [
+            ArtifactRecord(
+                id=row["id"],
+                session_id=row["session_id"],
+                artifact_type=row["artifact_type"],
+                path=row["path"],
+                created_by=row["created_by"],
+                metadata=json.loads(row["metadata_json"]),
                 created_at=row["created_at"],
             )
             for row in rows
