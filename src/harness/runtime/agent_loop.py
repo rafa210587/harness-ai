@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from harness.hooks import BeforeToolEvent, HookAction, HookDispatcher
 from harness.llm import LLMProvider, LLMProviderError, Message, ToolCall
 from harness.storage import SQLiteStore
-from harness.tools import ToolRegistry, ToolResult
+from harness.tools import ToolRegistry, ToolResult, ToolRisk
 
 
 class AgentStatus(StrEnum):
@@ -109,7 +109,7 @@ class AgentLoop:
             session_id=session_id,
             tool_name=call.name,
             arguments=call.arguments,
-            risk=tool.risk if tool is not None else self._missing_tool_risk(),
+            risk=tool.risk if tool is not None else ToolRisk.DANGEROUS,
         )
         approved = await self._approval_handler(event)
         await self._store.decide_approval(approval.id, approved)
@@ -425,11 +425,6 @@ class AgentLoop:
                 "SESSION_FINISHED",
                 {"status": status.value, "reason": reason or ""},
             )
-
-    def _missing_tool_risk(self):
-        from harness.tools import ToolRisk
-
-        return ToolRisk.DANGEROUS
 
 
 def _unresolved_tool_calls(messages: list[Message]) -> list[ToolCall]:
