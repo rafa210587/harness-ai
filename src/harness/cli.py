@@ -128,27 +128,35 @@ def run_command(task: str) -> None:
     """Run one task with the configured DeepSeek provider."""
     settings = load_settings()
 
-    async def approval_handler(event: BeforeToolEvent) -> bool:
-        console.print(f"[yellow]Approval required:[/] {event.tool_name}")
-        console.print(event.arguments)
-        return typer.confirm("Allow this tool call?", default=False)
-
     async def run_agent() -> None:
         try:
-            loop = build_agent_loop(settings, approval_handler=approval_handler)
+            loop = build_agent_loop(settings, approval_handler=_interactive_approval)
             result = await loop.run(task)
         except LLMProviderError as exc:
             console.print(f"[red]Provider error:[/] {exc}")
             raise typer.Exit(code=1) from exc
 
-        if result.status is AgentStatus.COMPLETED:
-            console.print(result.content or "")
-            return
-
-        console.print(f"[red]{result.status.value}:[/] {result.reason or 'unknown reason'}")
-        raise typer.Exit(code=1)
+        _render_run_result(result)
 
     asyncio.run(run_agent())
+
+
+@app.command("resume")
+def resume_command(session_id: str) -> None:
+    """Resume a blocked persisted session from its pending approval."""
+    settings = load_settings()
+
+    async def resume_agent() -> None:
+        try:
+            loop = build_agent_loop(settings, approval_handler=_interactive_approval)
+            result = await loop.resume(session_id)
+        except (ValueError, RuntimeError, LLMProviderError) as exc:
+            console.print(f"[red]Resume failed:[/] {exc}")
+            raise typer.Exit(code=1) from exc
+
+        _render_run_result(result)
+
+    asyncio.run(resume_agent())
 
 
 @app.command()
@@ -205,6 +213,21 @@ def doctor() -> None:
         table.add_row(name, "OK" if ok else "MISSING", str(detail))
 
     console.print(table)
+
+
+async def _interactive_approval(event: BeforeToolEvent) -> bool:
+    console.print(f"[yellow]Approval required:[/] {event.tool_name}")
+    console.print(event.arguments)
+    return typer.confirm("Allow this tool call?", default=False)
+
+
+def _render_run_result(result) -> None:
+    if result.status is AgentStatus.COMPLETED:
+        console.print(result.content or "")
+        return
+
+    console.print(f"[red]{result.status.value}:[/] {result.reason or 'unknown reason'}")
+    raise typer.Exit(code=1)
 
 
 def _configured_executable_exists(path: Path | None) -> bool:
