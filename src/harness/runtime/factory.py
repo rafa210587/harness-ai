@@ -7,7 +7,7 @@ from harness.hooks import HookDispatcher, PermissionHook
 from harness.images import ImageProvider
 from harness.llm import DeepSeekProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
-from harness.runtime.verification import RunVerifier
+from harness.runtime.verification import LatestImageVisionVerifier, RunVerifier
 from harness.storage import SQLiteStore
 from harness.tools import (
     BlenderExecutePythonTool,
@@ -97,12 +97,18 @@ def build_agent_loop(
     hooks = HookDispatcher([PermissionHook(settings.permissions)])
     provider = DeepSeekProvider(settings)
     store = SQLiteStore(settings.harness_data_dir / "harness.db")
+    effective_verifier = verifier
+    if effective_verifier is None and vision_provider is not None:
+        effective_verifier = LatestImageVisionVerifier(
+            vision_provider,
+            settings.harness_workspace,
+        )
     return AgentLoop(
         provider,
         registry,
         hooks,
         store=store,
-        verifier=verifier,
+        verifier=effective_verifier,
         max_steps=settings.agent_max_steps,
         max_consecutive_errors=settings.agent_max_consecutive_errors,
         approval_handler=approval_handler,
