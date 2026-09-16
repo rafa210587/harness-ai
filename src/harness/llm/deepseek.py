@@ -6,7 +6,14 @@ from typing import Any, cast
 from openai import AsyncOpenAI
 
 from harness.config import Settings
-from harness.llm.base import LLMProvider, LLMProviderError, LLMResponse, Message, ToolCall
+from harness.llm.base import (
+    LLMProvider,
+    LLMProviderError,
+    LLMResponse,
+    LLMUsage,
+    Message,
+    ToolCall,
+)
 
 
 class DeepSeekProvider(LLMProvider):
@@ -75,6 +82,17 @@ class DeepSeekProvider(LLMProvider):
             content=response_message.content,
             tool_calls=parsed_calls,
             finish_reason=choice.finish_reason,
+            usage=self._normalize_usage(getattr(response, "usage", None)),
+        )
+
+    @staticmethod
+    def _normalize_usage(usage: Any | None) -> LLMUsage | None:
+        if usage is None:
+            return None
+        return LLMUsage(
+            input_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
+            output_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
+            total_tokens=int(getattr(usage, "total_tokens", 0) or 0),
         )
 
     @staticmethod
