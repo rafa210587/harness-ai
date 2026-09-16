@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -163,7 +164,7 @@ def resume_command(session_id: str) -> None:
 @app.command("eval")
 def eval_command(
     scenarios_file: Path,
-    json_out: Path | None = typer.Option(None, "--json-out"),
+    json_out: Annotated[Path | None, typer.Option("--json-out")] = None,
 ) -> None:
     """Run a YAML eval suite with the configured harness."""
     settings = load_settings()
