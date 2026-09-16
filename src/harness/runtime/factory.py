@@ -4,6 +4,7 @@ from harness.config import Settings
 from harness.hooks import HookDispatcher, PermissionHook
 from harness.llm import DeepSeekProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
+from harness.storage import SQLiteStore
 from harness.tools import (
     FilesystemListTool,
     FilesystemReadTool,
@@ -36,10 +37,12 @@ def build_agent_loop(
     registry = build_tool_registry(settings)
     hooks = HookDispatcher([PermissionHook()])
     provider = DeepSeekProvider(settings)
+    store = SQLiteStore(settings.harness_data_dir / "harness.db")
     return AgentLoop(
         provider,
         registry,
         hooks,
+        store=store,
         max_steps=settings.agent_max_steps,
         max_consecutive_errors=settings.agent_max_consecutive_errors,
         approval_handler=approval_handler,
