@@ -14,6 +14,7 @@ from rich.table import Table
 
 from harness import __version__
 from harness.config import load_settings
+from harness.diagnostics import run_online_checks
 from harness.evals import EvalRunner, load_eval_scenarios
 from harness.hooks import BeforeToolEvent
 from harness.llm import LLMProviderError
@@ -188,6 +189,7 @@ def eval_command(
         table.add_column("Result")
         table.add_column("Status")
         table.add_column("Steps")
+        table.add_column("Tokens")
         table.add_column("Tool errors")
         table.add_column("Verification failures")
         for case in report.cases:
@@ -196,13 +198,15 @@ def eval_command(
                 "PASS" if case.passed else "FAIL",
                 case.status.value,
                 str(case.steps),
+                str(case.total_tokens),
                 str(case.tool_errors),
                 str(case.verification_failures),
             )
         console.print(table)
         console.print(
             f"Passed {report.passed}/{report.total} "
-            f"({report.success_rate:.1%}); average steps: {report.average_steps:.2f}"
+            f"({report.success_rate:.1%}); average steps: {report.average_steps:.2f}; "
+            f"tokens: {report.total_tokens}"
         )
 
         if json_out is not None:
@@ -216,8 +220,10 @@ def eval_command(
 
 
 @app.command()
-def doctor() -> None:
-    """Run local environment checks without making a network request."""
+def doctor(
+    online: Annotated[bool, typer.Option("--online")] = False,
+) -> None:
+    """Run environment checks; --online also probes providers and applications."""
     settings = load_settings()
     workspace = settings.harness_workspace
     data_dir = settings.harness_data_dir
@@ -259,6 +265,12 @@ def doctor() -> None:
             str(settings.unity_path or "not set"),
         ),
     ]
+
+    if online:
+        checks.extend(
+            (result.name, result.ok, result.detail)
+            for result in asyncio.run(run_online_checks(settings))
+        )
 
     table = Table(title="Harness doctor")
     table.add_column("Check")
