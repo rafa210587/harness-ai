@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from playwright.async_api import BrowserContext, Page, Playwright, async_playwright
+from playwright.async_api import BrowserContext, Page, Playwright, Route, async_playwright
+
+from harness.browser.security import is_blocked_http_url
 
 
 class PlaywrightController:
@@ -24,6 +26,7 @@ class PlaywrightController:
             user_data_dir=str(self._profile_dir),
             headless=self._headless,
         )
+        await self._context.route("**/*", self._guard_request)
         self._page = (
             self._context.pages[0] if self._context.pages else await self._context.new_page()
         )
@@ -76,3 +79,9 @@ class PlaywrightController:
         if self._page is None:
             raise RuntimeError("Browser page was not created")
         return self._page
+
+    async def _guard_request(self, route: Route) -> None:
+        if is_blocked_http_url(route.request.url):
+            await route.abort("blockedbyclient")
+            return
+        await route.continue_()
