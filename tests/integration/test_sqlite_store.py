@@ -17,6 +17,7 @@ async def test_sqlite_store_persists_session_message_and_tool_call(tmp_path: Pat
         ToolCall(id="call-1", name="filesystem_list", arguments={"path": "."}),
         ToolResult.ok([{"path": "hello.txt", "type": "file"}]),
     )
+    await store.add_event("s1", "TEST_EVENT", {"value": 1})
     await store.finish_session("s1", "completed")
 
     with sqlite3.connect(db_path) as db:
@@ -31,3 +32,16 @@ async def test_sqlite_store_persists_session_message_and_tool_call(tmp_path: Pat
     assert session == ("test task", "completed")
     assert message_count == 1
     assert tool_count == 1
+
+    loaded = await store.get_session("s1")
+    assert loaded is not None
+    assert loaded.task == "test task"
+    assert loaded.status == "completed"
+
+    sessions = await store.list_sessions()
+    assert [item.id for item in sessions] == ["s1"]
+
+    events = await store.list_events("s1")
+    assert len(events) == 1
+    assert events[0].event_type == "TEST_EVENT"
+    assert events[0].payload == {"value": 1}
