@@ -7,6 +7,9 @@ data:
 database:
   path: ./data/harness.db
 
+skills:
+  root: ./skills
+
 browser:
   persistent_profile: true
   profile_path: ./data/browser-profile
