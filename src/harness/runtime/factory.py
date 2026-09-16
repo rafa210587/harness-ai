@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+from harness.browser import PlaywrightController
 from harness.config import Settings
 from harness.hooks import HookDispatcher, PermissionHook
 from harness.llm import DeepSeekProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
 from harness.storage import SQLiteStore
 from harness.tools import (
+    BrowserClickTool,
+    BrowserFillTool,
+    BrowserNavigateTool,
+    BrowserReadPageTool,
+    BrowserScreenshotTool,
+    BrowserWaitTool,
     FilesystemListTool,
     FilesystemReadTool,
     FilesystemSearchTool,
@@ -19,12 +26,23 @@ from harness.tools import (
 def build_tool_registry(settings: Settings) -> ToolRegistry:
     settings.harness_workspace.mkdir(parents=True, exist_ok=True)
     paths = WorkspacePaths(settings.harness_workspace)
+    browser = PlaywrightController(
+        settings.harness_browser_profile,
+        headless=settings.harness_browser_headless,
+    )
+
     registry = ToolRegistry()
     registry.register(FilesystemReadTool(paths))
     registry.register(FilesystemListTool(paths))
     registry.register(FilesystemWriteTool(paths))
     registry.register(FilesystemSearchTool(paths))
     registry.register(ShellRunTool(paths))
+    registry.register(BrowserNavigateTool(browser))
+    registry.register(BrowserReadPageTool(browser))
+    registry.register(BrowserClickTool(browser))
+    registry.register(BrowserFillTool(browser))
+    registry.register(BrowserWaitTool(browser))
+    registry.register(BrowserScreenshotTool(browser, paths))
     return registry
 
 
