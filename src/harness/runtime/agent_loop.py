@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Awaitable, Callable
 from enum import StrEnum
@@ -21,6 +22,7 @@ class AgentStatus(StrEnum):
     COMPLETED = "completed"
     BLOCKED = "blocked"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class AgentRunResult(BaseModel):
@@ -163,6 +165,25 @@ class AgentLoop:
         )
 
     async def _continue(
+        self,
+        session_id: str,
+        task: str,
+        messages: list[Message],
+        *,
+        initial_consecutive_errors: int = 0,
+    ) -> AgentRunResult:
+        try:
+            return await self._continue_impl(
+                session_id,
+                task,
+                messages,
+                initial_consecutive_errors=initial_consecutive_errors,
+            )
+        except asyncio.CancelledError:
+            await self._finish_session(session_id, AgentStatus.CANCELLED, "Run cancelled")
+            raise
+
+    async def _continue_impl(
         self,
         session_id: str,
         task: str,
@@ -577,6 +598,15 @@ class AgentLoop:
                 "SESSION_FINISHED",
                 {"status": status.value, "reason": reason or ""},
             )
+
+        cleanup_errors = await self._tools.close()
+        if self._store is not None:
+            for cleanup_error in cleanup_errors:
+                await self._store.add_event(
+                    session_id,
+                    "RESOURCE_CLEANUP_ERROR",
+                    {"error": cleanup_error},
+                )
 
 
 def _unresolved_tool_calls(messages: list[Message]) -> list[ToolCall]:
