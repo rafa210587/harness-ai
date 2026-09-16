@@ -25,11 +25,11 @@ class ToolResult(BaseModel):
     retryable: bool = False
 
     @classmethod
-    def ok(cls, output: Any = None, *, artifacts: list[str] | None = None) -> "ToolResult":
+    def ok(cls, output: Any = None, *, artifacts: list[str] | None = None) -> ToolResult:
         return cls(success=True, output=output, artifacts=artifacts or [])
 
     @classmethod
-    def fail(cls, error: str, *, retryable: bool = False) -> "ToolResult":
+    def fail(cls, error: str, *, retryable: bool = False) -> ToolResult:
         return cls(success=False, error=error, retryable=retryable)
 
 
