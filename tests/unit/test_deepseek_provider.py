@@ -22,10 +22,10 @@ class FakeClient:
         self.chat = SimpleNamespace(completions=self.completions)
 
 
-def make_response(*, content=None, tool_calls=None, finish_reason="stop"):
+def make_response(*, content=None, tool_calls=None, finish_reason="stop", usage=None):
     message = SimpleNamespace(content=content, tool_calls=tool_calls or [])
     choice = SimpleNamespace(message=message, finish_reason=finish_reason)
-    return SimpleNamespace(choices=[choice])
+    return SimpleNamespace(choices=[choice], usage=usage)
 
 
 def make_tool_call(arguments: str):
@@ -44,6 +44,19 @@ async def test_provider_normalizes_text_response() -> None:
     assert response.content == "done"
     assert response.tool_calls == []
     assert client.completions.kwargs["model"] == "deepseek-flash"
+
+
+async def test_provider_normalizes_token_usage() -> None:
+    usage = SimpleNamespace(prompt_tokens=120, completion_tokens=30, total_tokens=150)
+    client = FakeClient(make_response(content="done", usage=usage))
+    provider = DeepSeekProvider(Settings(_env_file=None), client=client)
+
+    response = await provider.complete([Message(role="user", content="hello")])
+
+    assert response.usage is not None
+    assert response.usage.input_tokens == 120
+    assert response.usage.output_tokens == 30
+    assert response.usage.total_tokens == 150
 
 
 async def test_provider_normalizes_tool_call() -> None:
