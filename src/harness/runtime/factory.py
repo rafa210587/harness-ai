@@ -9,6 +9,7 @@ from harness.llm import DeepSeekProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
 from harness.runtime.context import LLMContextCompactor
 from harness.runtime.verification import LatestImageVisionVerifier, RunVerifier
+from harness.skills import RuntimeSkillLoader
 from harness.storage import SQLiteStore
 from harness.tools import (
     BlenderExecutePythonTool,
@@ -29,6 +30,8 @@ from harness.tools import (
     FilesystemWriteTool,
     ImageGenerateTool,
     ShellRunTool,
+    SkillListTool,
+    SkillLoadTool,
     ToolRegistry,
     UnityExecuteEditorScriptTool,
     UnityProjectInfoTool,
@@ -53,6 +56,7 @@ def build_tool_registry(
     )
     blender = BlenderController(settings.blender_path, paths)
     unity = UnityController(settings.unity_path, paths)
+    skills = RuntimeSkillLoader(settings.harness_skills_dir)
 
     registry = ToolRegistry()
     registry.register(FilesystemReadTool(paths))
@@ -64,6 +68,8 @@ def build_tool_registry(
     registry.register(FilesystemCopyTool(paths))
     registry.register(FilesystemMoveTool(paths))
     registry.register(ShellRunTool(paths))
+    registry.register(SkillListTool(skills))
+    registry.register(SkillLoadTool(skills))
     registry.register(BrowserNavigateTool(browser))
     registry.register(BrowserReadPageTool(browser))
     registry.register(BrowserClickTool(browser))
