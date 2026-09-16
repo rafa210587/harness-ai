@@ -17,7 +17,9 @@ class EvalScenario(BaseModel):
     task: str
     expected_status: AgentStatus = AgentStatus.COMPLETED
     content_contains: list[str] = Field(default_factory=list)
+    required_tools: list[str] = Field(default_factory=list)
     max_steps: int | None = Field(default=None, ge=1)
+    max_tool_errors: int | None = Field(default=None, ge=0)
 
 
 class EvalCaseResult(BaseModel):
@@ -31,6 +33,7 @@ class EvalCaseResult(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
+    missing_required_tools: list[str] = Field(default_factory=list)
     reason: str | None = None
 
 
@@ -102,6 +105,7 @@ class EvalRunner:
         input_tokens = 0
         output_tokens = 0
         total_tokens = 0
+        completed_tools: set[str] = set()
         if self._store is not None:
             events = await self._store.list_events(result.session_id)
             tool_errors = sum(event.event_type == "TOOL_ERROR" for event in events)
@@ -109,6 +113,10 @@ class EvalRunner:
                 event.event_type == "VERIFICATION_FAILED" for event in events
             )
             for event in events:
+                if event.event_type == "TOOL_COMPLETED":
+                    tool_name = event.payload.get("tool")
+                    if isinstance(tool_name, str):
+                        completed_tools.add(tool_name)
                 if event.event_type != "LLM_RESPONSE_RECEIVED":
                     continue
                 usage = event.payload.get("usage")
@@ -118,8 +126,13 @@ class EvalRunner:
                 output_tokens += _int_value(usage.get("output_tokens"))
                 total_tokens += _int_value(usage.get("total_tokens"))
 
+        missing_required_tools = sorted(set(scenario.required_tools) - completed_tools)
         passed = result.status is scenario.expected_status
         if scenario.max_steps is not None and result.steps > scenario.max_steps:
+            passed = False
+        if scenario.max_tool_errors is not None and tool_errors > scenario.max_tool_errors:
+            passed = False
+        if missing_required_tools:
             passed = False
         if result.content is None and scenario.content_contains:
             passed = False
@@ -139,6 +152,7 @@ class EvalRunner:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             total_tokens=total_tokens,
+            missing_required_tools=missing_required_tools,
             reason=result.reason,
         )
 
