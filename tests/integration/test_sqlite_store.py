@@ -67,9 +67,7 @@ async def test_sqlite_store_rejects_incompatible_schema_version(tmp_path: Path) 
     await store.initialize()
 
     with sqlite3.connect(db_path) as db:
-        db.execute(
-            "UPDATE schema_meta SET value = '99' WHERE key = 'schema_version'"
-        )
+        db.execute("UPDATE schema_meta SET value = '99' WHERE key = 'schema_version'")
         db.commit()
 
     with pytest.raises(RuntimeError, match="Unsupported database schema version 99"):
