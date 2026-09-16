@@ -72,6 +72,26 @@ async def test_registry_enforces_global_tool_timeout() -> None:
     assert result.error == "Tool slow timed out after 1s"
 
 
+async def test_registry_runs_cleanup_handlers_and_reports_errors() -> None:
+    registry = ToolRegistry()
+    cleaned: list[str] = []
+
+    async def first_cleanup() -> None:
+        cleaned.append("first")
+
+    async def failing_cleanup() -> None:
+        cleaned.append("failing")
+        raise RuntimeError("cleanup failed")
+
+    registry.register_cleanup(first_cleanup)
+    registry.register_cleanup(failing_cleanup)
+
+    errors = await registry.close()
+
+    assert cleaned == ["failing", "first"]
+    assert errors == ["RuntimeError: cleanup failed"]
+
+
 def test_registry_exposes_openai_compatible_schema() -> None:
     registry = ToolRegistry()
     registry.register(EchoTool())
