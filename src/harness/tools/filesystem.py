@@ -8,6 +8,18 @@ from pydantic import BaseModel, Field
 
 from harness.tools.base import Tool, ToolResult, ToolRisk
 
+_SAFE_ENV_EXAMPLES = {".env.example", ".env.sample", ".env.template"}
+_SENSITIVE_DIRECTORY_NAMES = {".git", ".ssh", ".aws", ".azure", ".gnupg"}
+_SENSITIVE_FILE_NAMES = {
+    "credentials",
+    "credentials.json",
+    "id_ed25519",
+    "id_rsa",
+    "secrets.json",
+    "service-account.json",
+}
+_SENSITIVE_SUFFIXES = {".key", ".p12", ".pem", ".pfx"}
+
 
 class WorkspacePaths:
     def __init__(self, root: Path) -> None:
@@ -19,10 +31,34 @@ class WorkspacePaths:
             candidate.relative_to(self.root)
         except ValueError as exc:
             raise ValueError(f"Path escapes workspace: {raw_path}") from exc
+        if self.is_sensitive(candidate):
+            raise ValueError(f"Sensitive workspace path is protected: {raw_path}")
         return candidate
 
     def relative(self, path: Path) -> str:
         return path.resolve().relative_to(self.root).as_posix()
+
+    def is_sensitive(self, path: Path) -> bool:
+        resolved = path.resolve()
+        try:
+            relative = resolved.relative_to(self.root)
+        except ValueError:
+            return True
+
+        lowered_parts = [part.lower() for part in relative.parts]
+        if any(part in _SENSITIVE_DIRECTORY_NAMES for part in lowered_parts[:-1]):
+            return True
+        if not lowered_parts:
+            return False
+
+        name = lowered_parts[-1]
+        if name in _SENSITIVE_DIRECTORY_NAMES:
+            return True
+        if name.startswith(".env") and name not in _SAFE_ENV_EXAMPLES:
+            return True
+        if name in _SENSITIVE_FILE_NAMES:
+            return True
+        return Path(name).suffix.lower() in _SENSITIVE_SUFFIXES
 
 
 class PathArguments(BaseModel):
@@ -242,7 +278,7 @@ class FilesystemSearchTool(Tool):
 
         results: list[dict[str, object]] = []
         for file_path in root.rglob(args.glob):
-            if not file_path.is_file():
+            if not file_path.is_file() or self._paths.is_sensitive(file_path):
                 continue
             try:
                 lines = file_path.read_text(encoding="utf-8").splitlines()
