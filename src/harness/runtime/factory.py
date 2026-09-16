@@ -59,6 +59,7 @@ def build_tool_registry(
     skills = RuntimeSkillLoader(settings.harness_skills_dir)
 
     registry = ToolRegistry(default_timeout_seconds=settings.agent_max_tool_runtime_seconds)
+    registry.register_cleanup(browser.close)
     registry.register(FilesystemReadTool(paths))
     registry.register(FilesystemListTool(paths))
     registry.register(FilesystemWriteTool(paths))
