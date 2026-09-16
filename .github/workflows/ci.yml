@@ -29,7 +29,9 @@ jobs:
         run: uv run mypy src
 
       - name: Pytest
-        run: uv run pytest -m "not blender and not unity and not browser_external"
+        run: >-
+          uv run pytest -m
+          "not blender and not unity and not browser_runtime and not browser_external"
 
   windows-core:
     runs-on: windows-latest
@@ -48,4 +50,6 @@ jobs:
         run: uv run harness version
 
       - name: Pytest core
-        run: uv run pytest -m "not blender and not unity and not browser_external"
+        run: >-
+          uv run pytest -m
+          "not blender and not unity and not browser_runtime and not browser_external"
