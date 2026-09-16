@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from harness.runtime.process import ProcessResult
+from harness.process import ProcessResult
 from harness.tools import (
     BlenderExecutePythonTool,
     BlenderRenderTool,
