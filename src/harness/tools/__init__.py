@@ -9,7 +9,11 @@ from harness.tools.browser import (
     BrowserWaitTool,
 )
 from harness.tools.filesystem import (
+    FilesystemCopyTool,
     FilesystemListTool,
+    FilesystemMkdirTool,
+    FilesystemMoveTool,
+    FilesystemPatchTool,
     FilesystemReadTool,
     FilesystemSearchTool,
     FilesystemWriteTool,
@@ -28,7 +32,11 @@ __all__ = [
     "BrowserReadPageTool",
     "BrowserScreenshotTool",
     "BrowserWaitTool",
+    "FilesystemCopyTool",
     "FilesystemListTool",
+    "FilesystemMkdirTool",
+    "FilesystemMoveTool",
+    "FilesystemPatchTool",
     "FilesystemReadTool",
     "FilesystemSearchTool",
     "FilesystemWriteTool",
