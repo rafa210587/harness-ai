@@ -1,4 +1,5 @@
 from harness.tools.base import Tool, ToolResult, ToolRisk
+from harness.tools.blender import BlenderExecutePythonTool, BlenderRenderTool
 from harness.tools.browser import (
     BrowserClickTool,
     BrowserFillTool,
@@ -16,8 +17,11 @@ from harness.tools.filesystem import (
 )
 from harness.tools.registry import ToolRegistry
 from harness.tools.shell import ShellRunTool
+from harness.tools.unity import UnityExecuteEditorScriptTool, UnityProjectInfoTool
 
 __all__ = [
+    "BlenderExecutePythonTool",
+    "BlenderRenderTool",
     "BrowserClickTool",
     "BrowserFillTool",
     "BrowserNavigateTool",
@@ -33,5 +37,7 @@ __all__ = [
     "ToolRegistry",
     "ToolResult",
     "ToolRisk",
+    "UnityExecuteEditorScriptTool",
+    "UnityProjectInfoTool",
     "WorkspacePaths",
 ]
