@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Protocol
@@ -95,10 +96,8 @@ async def _check_browser(browser_factory: BrowserFactory) -> DiagnosticResult:
             browser = None
     except Exception as exc:  # diagnostics boundary
         if browser is not None:
-            try:
+            with suppress(Exception):
                 await browser.close()
-            except Exception:
-                pass
         return DiagnosticResult(
             name="Chromium launch",
             ok=False,
