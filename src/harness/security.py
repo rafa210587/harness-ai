@@ -9,9 +9,7 @@ class SecretRedactor:
     """Redact configured secret values from runtime data before it reaches the agent or storage."""
 
     def __init__(self, secrets: list[str] | tuple[str, ...]) -> None:
-        self._secrets = tuple(
-            secret for secret in secrets if secret and len(secret) >= 4
-        )
+        self._secrets = tuple(secret for secret in secrets if secret and len(secret) >= 4)
 
     def redact_text(self, value: str) -> str:
         redacted = value
