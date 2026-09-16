@@ -4,11 +4,14 @@
 
 This repository implements a small local AI harness.
 
-Read these documents before architectural changes:
+Read these documents before architectural or roadmap work:
 
 1. `ARCHITECTURE.md`
-2. `REPOSITORY.md`
-3. `SETUP.md`
+2. `EXECUTION_PLAN.md`
+3. `REPOSITORY.md`
+4. `SETUP.md`
+
+`EXECUTION_PLAN.md` is the permanent source of truth for build order, phase dependencies, ownership and exit criteria. It does not replace temporary feature specs.
 
 ## Core constraints
 
@@ -43,6 +46,7 @@ Rules:
 - Temporary work artifacts are removed when the feature is complete.
 - Permanent docs change only when a lasting repository decision changed.
 - Do not create separate subagents just to implement this workflow; skills are the default until independent agents show measurable value.
+- Do not skip phase dependencies or exit criteria from `EXECUTION_PLAN.md` without explicitly updating the roadmap/architecture decision first.
 
 ## Before editing
 
@@ -50,10 +54,12 @@ Investigate relevant code first. Do not infer implementation details from filena
 
 For a non-trivial change:
 
-1. classify it with `feature-workflow`;
-2. inspect the affected module and tests;
-3. create only the temporary artifacts required by the classification;
-4. use the matching technical skill when applicable.
+1. identify the current roadmap phase in `EXECUTION_PLAN.md`;
+2. verify its entry criteria/dependencies;
+3. classify the change with `feature-workflow`;
+4. inspect the affected module and tests;
+5. create only the temporary artifacts required by the classification;
+6. use the matching technical skill when applicable.
 
 ## Skills
 
@@ -150,6 +156,7 @@ Run Blender/Unity/external browser tests only when relevant and supported by the
 Follow `.claude/skills/concise-docs/SKILL.md`.
 
 - `ARCHITECTURE.md`: lasting architecture/ADRs.
+- `EXECUTION_PLAN.md`: durable roadmap, phase ownership/dependencies/exit criteria.
 - `REPOSITORY.md`: repository boundaries/workflow.
 - `SETUP.md`: environment/dependency setup.
 - `SKILLS_HOOKS.md`: skill/hook model.
@@ -167,9 +174,11 @@ Keep commits logically scoped.
 
 State:
 
+- roadmap phase/change completed;
 - what changed;
 - what was tested;
 - what was not tested;
-- remaining limitations/findings.
+- remaining limitations/findings;
+- whether the phase exit criteria are actually met.
 
-Do not claim a workflow works if it was not actually executed.
+Do not claim a workflow or roadmap phase is complete if it was not actually executed/validated.
