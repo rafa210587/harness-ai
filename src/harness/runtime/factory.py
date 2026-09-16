@@ -7,6 +7,7 @@ from harness.hooks import HookDispatcher, PermissionHook
 from harness.images import ImageProvider
 from harness.llm import DeepSeekProvider
 from harness.runtime.agent_loop import AgentLoop, ApprovalHandler
+from harness.runtime.context import LLMContextCompactor
 from harness.runtime.verification import LatestImageVisionVerifier, RunVerifier
 from harness.storage import SQLiteStore
 from harness.tools import (
@@ -96,6 +97,10 @@ def build_agent_loop(
     )
     hooks = HookDispatcher([PermissionHook(settings.permissions)])
     provider = DeepSeekProvider(settings)
+    context_compactor = LLMContextCompactor(
+        provider,
+        keep_recent=settings.context_keep_recent,
+    )
     store = SQLiteStore(settings.harness_data_dir / "harness.db")
     effective_verifier = verifier
     if effective_verifier is None and vision_provider is not None:
@@ -109,6 +114,8 @@ def build_agent_loop(
         hooks,
         store=store,
         verifier=effective_verifier,
+        context_compactor=context_compactor,
+        max_context_messages=settings.context_max_messages,
         max_steps=settings.agent_max_steps,
         max_consecutive_errors=settings.agent_max_consecutive_errors,
         approval_handler=approval_handler,
