@@ -8,6 +8,19 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+if (Test-Path ".env") {
+    foreach ($line in Get-Content ".env") {
+        $trimmed = $line.Trim()
+        if (-not $trimmed -or $trimmed.StartsWith("#") -or -not $trimmed.Contains("=")) {
+            continue
+        }
+        $parts = $trimmed -split "=", 2
+        $name = $parts[0].Trim()
+        $value = $parts[1].Trim()
+        [Environment]::SetEnvironmentVariable($name, $value, "Process")
+    }
+}
+
 if ($All) {
     $Online = $true
     $Browser = $true
