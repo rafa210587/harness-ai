@@ -22,6 +22,9 @@ class ToolRegistry:
         except KeyError as exc:
             raise KeyError(f"Unknown tool: {name}") from exc
 
+    def tools(self) -> tuple[Tool, ...]:
+        return tuple(self._tools.values())
+
     def schemas(self) -> list[dict[str, Any]]:
         return [tool.schema() for tool in self._tools.values()]
 
