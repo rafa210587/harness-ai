@@ -19,9 +19,11 @@ from harness.tools.filesystem import (
     FilesystemWriteTool,
     WorkspacePaths,
 )
+from harness.tools.image import ImageGenerateTool
 from harness.tools.registry import ToolRegistry
 from harness.tools.shell import ShellRunTool
 from harness.tools.unity import UnityExecuteEditorScriptTool, UnityProjectInfoTool
+from harness.tools.vision import VisionInspectTool
 
 __all__ = [
     "BlenderExecutePythonTool",
@@ -40,6 +42,7 @@ __all__ = [
     "FilesystemReadTool",
     "FilesystemSearchTool",
     "FilesystemWriteTool",
+    "ImageGenerateTool",
     "ShellRunTool",
     "Tool",
     "ToolRegistry",
@@ -47,5 +50,6 @@ __all__ = [
     "ToolRisk",
     "UnityExecuteEditorScriptTool",
     "UnityProjectInfoTool",
+    "VisionInspectTool",
     "WorkspacePaths",
 ]
