@@ -1,0 +1,26 @@
+permissions:
+  filesystem:
+    read: auto
+    list: auto
+    write: auto
+    delete: approval
+
+  shell:
+    normal: auto
+    elevated: approval
+
+  browser:
+    read: auto
+    navigate: auto
+    submit: approval
+    purchase: deny
+
+  blender:
+    modify: auto
+
+  unity:
+    modify: auto
+
+  git:
+    commit: auto
+    push: approval
