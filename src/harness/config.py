@@ -98,9 +98,7 @@ def load_settings(
         values["permissions"] = PermissionSettings.model_validate(permissions_yaml)
 
     file_environment = {
-        key: value
-        for key, value in dotenv_values(env_file).items()
-        if value not in (None, "")
+        key: value for key, value in dotenv_values(env_file).items() if value not in (None, "")
     }
     environment = {**file_environment, **os.environ}
     for env_name, field_name in _ENV_TO_FIELD.items():
