@@ -4,6 +4,9 @@ workspace:
 data:
   root: ./data
 
+skills:
+  root: ./skills
+
 browser:
   profile_path: ./data/browser-profile
   headless: false
