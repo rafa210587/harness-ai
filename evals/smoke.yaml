@@ -1,0 +1,28 @@
+scenarios:
+  - name: filesystem-list
+    task: >-
+      Use filesystem_list on the workspace root before answering. Then briefly report what you found.
+    required_tools:
+      - filesystem_list
+    max_steps: 4
+    max_tool_errors: 0
+
+  - name: skill-discovery
+    task: >-
+      Use skill_list before answering. Then report which runtime skills are currently available.
+    required_tools:
+      - skill_list
+    max_steps: 4
+    max_tool_errors: 0
+
+  - name: filesystem-write-read
+    task: >-
+      Create eval-smoke/hello.txt with the exact text harness-smoke using filesystem_write.
+      Read it back with filesystem_read to verify it, then answer with SMOKE_OK.
+    content_contains:
+      - SMOKE_OK
+    required_tools:
+      - filesystem_write
+      - filesystem_read
+    max_steps: 6
+    max_tool_errors: 0
