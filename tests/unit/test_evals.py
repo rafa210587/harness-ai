@@ -2,6 +2,7 @@ from pathlib import Path
 
 from harness.evals import EvalRunner, EvalScenario, load_eval_scenarios
 from harness.runtime import AgentRunResult, AgentStatus
+from harness.storage import SQLiteStore
 
 
 class FakeAgent:
@@ -75,5 +76,37 @@ async def test_eval_runner_scores_content_status_and_steps() -> None:
     assert report.passed == 1
     assert report.success_rate == 0.5
     assert report.average_steps == 2.0
+    assert report.total_tokens == 0
     assert report.cases[0].passed is True
     assert report.cases[1].passed is False
+
+
+async def test_eval_runner_aggregates_persisted_llm_usage(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "harness.db")
+    await store.initialize()
+    await store.create_session("usage-session", "measure tokens")
+    await store.add_event(
+        "usage-session",
+        "LLM_RESPONSE_RECEIVED",
+        {
+            "usage": {
+                "input_tokens": 10,
+                "output_tokens": 4,
+                "total_tokens": 14,
+            }
+        },
+    )
+
+    result = AgentRunResult(
+        status=AgentStatus.COMPLETED,
+        content="done",
+        steps=1,
+        session_id="usage-session",
+    )
+    runner = EvalRunner(lambda _scenario: FakeAgent(result), store=store)
+    report = await runner.run([EvalScenario(name="usage", task="measure tokens")])
+
+    assert report.input_tokens == 10
+    assert report.output_tokens == 4
+    assert report.total_tokens == 14
+    assert report.cases[0].total_tokens == 14
