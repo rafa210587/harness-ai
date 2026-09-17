@@ -8,7 +8,18 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if (Test-Path ".env") {
+if ($All) {
+    $Online = $true
+    $Browser = $true
+    $Blender = $true
+    $Unity = $true
+}
+
+function Import-DotEnv {
+    if (-not (Test-Path ".env")) {
+        return
+    }
+
     foreach ($line in Get-Content ".env") {
         $trimmed = $line.Trim()
         if (-not $trimmed -or $trimmed.StartsWith("#") -or -not $trimmed.Contains("=")) {
@@ -19,13 +30,6 @@ if (Test-Path ".env") {
         $value = $parts[1].Trim()
         [Environment]::SetEnvironmentVariable($name, $value, "Process")
     }
-}
-
-if ($All) {
-    $Online = $true
-    $Browser = $true
-    $Blender = $true
-    $Unity = $true
 }
 
 function Invoke-Step {
@@ -41,6 +45,7 @@ function Invoke-Step {
     }
 }
 
+# Keep the deterministic core gate independent from developer-specific .env values.
 Invoke-Step "Sync dependencies" { uv sync --all-groups }
 Invoke-Step "Ruff format" { uv run ruff format --check src tests .claude/hooks }
 Invoke-Step "Ruff lint" { uv run ruff check src tests .claude/hooks }
@@ -50,6 +55,11 @@ Invoke-Step "Core tests" {
 }
 Invoke-Step "Build distribution" { uv build }
 Invoke-Step "Offline doctor" { uv run harness doctor }
+
+# Capability gates intentionally use the real local configuration.
+if ($Online -or $Browser -or $Blender -or $Unity) {
+    Import-DotEnv
+}
 
 if ($Online) {
     if (-not $env:DEEPSEEK_API_KEY) {
