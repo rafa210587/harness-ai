@@ -3,7 +3,8 @@ from typing import ClassVar
 
 from pydantic import BaseModel
 
-from harness.config import Settings
+import harness.runtime.factory as factory_module
+from harness.config import BrowserChannel, Settings
 from harness.images import ImageGenerationResult
 from harness.runtime import build_tool_registry
 from harness.tools import Tool, ToolResult, ToolRisk
@@ -56,6 +57,40 @@ def _settings(tmp_path: Path, **overrides) -> Settings:
         harness_browser_profile=tmp_path / "browser-profile",
         **overrides,
     )
+
+
+def test_factory_forwards_configured_browser_channel(tmp_path: Path, monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class CapturingBrowser:
+        def __init__(
+            self,
+            profile_dir: Path,
+            *,
+            headless: bool = False,
+            channel: str | None = None,
+        ) -> None:
+            captured["profile_dir"] = profile_dir
+            captured["headless"] = headless
+            captured["channel"] = channel
+
+        async def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(factory_module, "PlaywrightController", CapturingBrowser)
+    settings = _settings(
+        tmp_path,
+        harness_browser_headless=True,
+        harness_browser_channel=BrowserChannel.CHROME,
+    )
+
+    build_tool_registry(settings)
+
+    assert captured == {
+        "profile_dir": tmp_path / "browser-profile",
+        "headless": True,
+        "channel": "chrome",
+    }
 
 
 async def test_factory_registers_image_and_vision_only_when_provided(tmp_path: Path) -> None:
