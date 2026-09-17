@@ -55,6 +55,7 @@ def build_tool_registry(
     browser = PlaywrightController(
         settings.harness_browser_profile,
         headless=settings.harness_browser_headless,
+        channel=settings.harness_browser_channel.playwright_channel,
     )
     blender = BlenderController(settings.blender_path, paths)
     unity = UnityController(settings.unity_path, paths)
