@@ -236,6 +236,16 @@ This creates/reuses `workspace/unity-level6`, runs `evals/blender-unity-smoke.ya
 
 Dangerous tools still require runtime approval unless the permission policy explicitly says otherwise.
 
+Full local acceptance package:
+
+```powershell
+.\scripts\validate-full-local.ps1
+```
+
+This is the longest supported local gate. It runs the deterministic/core suite, real DeepSeek smoke scenarios, installed-Chrome runtime smoke, real Blender, real Unity, Level 6A Blender -> Unity, and an additional reliability suite covering bounded error recovery, mutation of an existing Blender artifact, idempotent Unity scene editing, runtime skills, artifact inspection, and forced real context compaction. It writes the consolidated report to `data/full-local-acceptance-report.json`.
+
+A green full-local report proves the currently implemented Level 5 gates plus Level 6A and reliability/recovery behavior. It does **not** prove Level 6B visual correctness because no concrete real `VisionProvider` is wired into the default runtime yet.
+
 ## 10. Development checks
 
 Before considering a substantial repository change complete:
