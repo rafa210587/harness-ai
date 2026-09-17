@@ -8,7 +8,9 @@ from harness.config import load_settings
 pytestmark = pytest.mark.browser_runtime
 
 
-async def test_configured_browser_launch_read_and_screenshot_without_network(tmp_path: Path) -> None:
+async def test_configured_browser_launch_read_and_screenshot_without_network(
+    tmp_path: Path,
+) -> None:
     settings = load_settings()
     controller = PlaywrightController(
         tmp_path / "browser-profile",
