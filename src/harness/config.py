@@ -17,6 +17,18 @@ class PermissionAction(StrEnum):
     DENY = "deny"
 
 
+class BrowserChannel(StrEnum):
+    CHROME = "chrome"
+    PLAYWRIGHT = "playwright"
+
+    @property
+    def playwright_channel(self) -> str | None:
+        """Translate harness channel selection to Playwright's launch option."""
+        if self is BrowserChannel.PLAYWRIGHT:
+            return None
+        return self.value
+
+
 class PermissionSettings(BaseModel):
     """Deterministic runtime permission policy."""
 
@@ -56,6 +68,7 @@ class Settings(BaseSettings):
 
     harness_browser_profile: Path = Path("./data/browser-profile")
     harness_browser_headless: bool = False
+    harness_browser_channel: BrowserChannel = BrowserChannel.CHROME
 
     blender_path: Path | None = None
     unity_path: Path | None = None
@@ -83,6 +96,7 @@ _ENV_TO_FIELD = {
     "HARNESS_LOG_LEVEL": "harness_log_level",
     "HARNESS_BROWSER_PROFILE": "harness_browser_profile",
     "HARNESS_BROWSER_HEADLESS": "harness_browser_headless",
+    "HARNESS_BROWSER_CHANNEL": "harness_browser_channel",
     "BLENDER_PATH": "blender_path",
     "UNITY_PATH": "unity_path",
     "AGENT_MAX_STEPS": "agent_max_steps",
@@ -150,6 +164,7 @@ def _harness_values(config: dict[str, Any]) -> dict[str, Any]:
     _copy_if_present(values, "harness_skills_dir", skills, "root")
     _copy_if_present(values, "harness_browser_profile", browser, "profile_path")
     _copy_if_present(values, "harness_browser_headless", browser, "headless")
+    _copy_if_present(values, "harness_browser_channel", browser, "channel")
     _copy_if_present(values, "agent_max_steps", agent, "max_steps")
     _copy_if_present(values, "agent_max_consecutive_errors", agent, "max_consecutive_errors")
     _copy_if_present(values, "agent_max_tool_runtime_seconds", agent, "max_tool_runtime_seconds")

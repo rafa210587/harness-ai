@@ -8,11 +8,18 @@ from harness.browser.security import ensure_public_http_url_resolved, is_blocked
 
 
 class PlaywrightController:
-    """Own one persistent Chromium context and expose semantic browser operations."""
+    """Own one persistent Chromium-based context and expose semantic browser operations."""
 
-    def __init__(self, profile_dir: Path, *, headless: bool = False) -> None:
+    def __init__(
+        self,
+        profile_dir: Path,
+        *,
+        headless: bool = False,
+        channel: str | None = None,
+    ) -> None:
         self._profile_dir = profile_dir
         self._headless = headless
+        self._channel = channel
         self._playwright: Playwright | None = None
         self._context: BrowserContext | None = None
         self._page: Page | None = None
@@ -25,6 +32,7 @@ class PlaywrightController:
         self._context = await self._playwright.chromium.launch_persistent_context(
             user_data_dir=str(self._profile_dir),
             headless=self._headless,
+            channel=self._channel,
         )
         await self._context.route("**/*", self._guard_request)
         self._page = (

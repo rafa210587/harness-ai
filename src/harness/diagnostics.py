@@ -39,9 +39,8 @@ async def run_online_checks(
     process_runner: ProcessRunner = run_process,
 ) -> list[DiagnosticResult]:
     """Run checks that contact providers or launch external applications."""
-    effective_browser_factory = browser_factory or _default_browser_factory
     results = [await _check_deepseek(settings, provider_factory)]
-    results.append(await _check_browser(effective_browser_factory))
+    results.append(await _check_browser(settings, browser_factory))
     results.append(
         await _check_executable(
             "Blender launch",
@@ -86,11 +85,19 @@ async def _check_deepseek(
     )
 
 
-async def _check_browser(browser_factory: BrowserFactory) -> DiagnosticResult:
+async def _check_browser(
+    settings: Settings,
+    browser_factory: BrowserFactory | None,
+) -> DiagnosticResult:
     browser: BrowserProbe | None = None
     try:
         with TemporaryDirectory(prefix="harness-doctor-") as directory:
-            browser = browser_factory(Path(directory))
+            profile_dir = Path(directory)
+            browser = (
+                browser_factory(profile_dir)
+                if browser_factory is not None
+                else _default_browser_factory(profile_dir, settings)
+            )
             await browser.start()
             await browser.close()
             browser = None
@@ -99,12 +106,16 @@ async def _check_browser(browser_factory: BrowserFactory) -> DiagnosticResult:
             with suppress(Exception):
                 await browser.close()
         return DiagnosticResult(
-            name="Chromium launch",
+            name="Browser launch",
             ok=False,
             detail=f"{type(exc).__name__}: {exc}",
         )
 
-    return DiagnosticResult(name="Chromium launch", ok=True, detail="launched successfully")
+    return DiagnosticResult(
+        name="Browser launch",
+        ok=True,
+        detail=f"{settings.harness_browser_channel.value} launched successfully",
+    )
 
 
 async def _check_executable(
@@ -135,5 +146,9 @@ async def _check_executable(
     )
 
 
-def _default_browser_factory(profile_dir: Path) -> BrowserProbe:
-    return PlaywrightController(profile_dir, headless=True)
+def _default_browser_factory(profile_dir: Path, settings: Settings) -> BrowserProbe:
+    return PlaywrightController(
+        profile_dir,
+        headless=True,
+        channel=settings.harness_browser_channel.playwright_channel,
+    )
