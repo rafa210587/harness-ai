@@ -45,6 +45,48 @@ function Invoke-Step {
     }
 }
 
+function Test-UnityProject {
+    param([string]$Path)
+
+    return (Test-Path (Join-Path $Path "Assets") -PathType Container) -and
+        (Test-Path (Join-Path $Path "ProjectSettings") -PathType Container)
+}
+
+function Resolve-UnitySmokeProject {
+    if ($env:HARNESS_UNITY_SMOKE_PROJECT) {
+        $configured = [System.IO.Path]::GetFullPath($env:HARNESS_UNITY_SMOKE_PROJECT)
+        if (-not (Test-UnityProject $configured)) {
+            throw "HARNESS_UNITY_SMOKE_PROJECT is not a valid Unity project: $configured"
+        }
+        return $configured
+    }
+
+    $project = Join-Path (Get-Location).Path "data\unity-smoke-project"
+    if (Test-Path $project) {
+        if (-not (Test-UnityProject $project)) {
+            throw "Automatic Unity smoke path exists but is not a valid Unity project: $project"
+        }
+        Write-Host "Reusing disposable Unity smoke project: $project"
+        return $project
+    }
+
+    Invoke-Step "Create disposable Unity smoke project" {
+        & $env:UNITY_PATH `
+            -batchmode `
+            -nographics `
+            -quit `
+            -createProject $project `
+            -logFile -
+    }
+
+    if (-not (Test-UnityProject $project)) {
+        throw "Unity exited successfully but did not create a valid project: $project"
+    }
+
+    Write-Host "Created disposable Unity smoke project: $project"
+    return $project
+}
+
 # The deterministic core gate does not import .env. Unit tests that assert defaults or
 # missing configuration explicitly isolate themselves from inherited developer variables.
 Invoke-Step "Sync dependencies" { uv sync --all-groups }
@@ -87,9 +129,13 @@ if ($Unity) {
     if (-not $env:UNITY_PATH) {
         throw "UNITY_PATH is required for -Unity"
     }
-    if (-not $env:HARNESS_UNITY_SMOKE_PROJECT) {
-        throw "HARNESS_UNITY_SMOKE_PROJECT is required for -Unity"
-    }
+
+    $unitySmokeProject = Resolve-UnitySmokeProject
+    [Environment]::SetEnvironmentVariable(
+        "HARNESS_UNITY_SMOKE_PROJECT",
+        $unitySmokeProject,
+        "Process"
+    )
     Invoke-Step "Unity smoke" { uv run pytest -m unity }
 }
 
