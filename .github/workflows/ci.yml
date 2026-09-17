@@ -46,6 +46,28 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $files = @(
+            "scripts/validate-local.ps1",
+            "scripts/validate-level6a.ps1",
+            "scripts/validate-full-local.ps1"
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | Format-List
+              throw "PowerShell syntax errors found in $file"
+            }
+          }
+
       - name: Seed local environment regression fixture
         shell: pwsh
         run: |

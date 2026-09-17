@@ -180,3 +180,16 @@ async def test_eval_runner_reports_tool_error_details(tmp_path: Path) -> None:
     assert report.cases[0].tool_error_details == [
         "filesystem_copy: Destination already exists: target.fbx"
     ]
+
+
+def test_full_local_reliability_suite_is_bounded() -> None:
+    scenarios = load_eval_scenarios(Path("evals/full-local-reliability.yaml"))
+
+    assert [scenario.name for scenario in scenarios] == [
+        "filesystem-recovery",
+        "blender-modify-existing-artifact",
+        "unity-edit-existing-scene",
+        "skills-and-artifact-inspection",
+    ]
+    assert all(scenario.max_steps is not None for scenario in scenarios)
+    assert max(scenario.max_steps or 0 for scenario in scenarios) <= 7
