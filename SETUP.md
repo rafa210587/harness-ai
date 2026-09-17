@@ -176,7 +176,7 @@ Everything configured:
 .\scripts\validate-local.ps1 -All
 ```
 
-The script loads `.env` into the current child-process environment, runs `uv sync`, quality checks, core tests, `uv build`, doctor, and the requested real integration gates.
+The script deliberately keeps `.env` out of the deterministic core test process, then loads it only for requested capability gates that need real local credentials or application paths. It runs `uv sync`, quality checks, core tests, `uv build`, doctor, and the requested real integration gates.
 
 ## 9. Useful CLI commands
 
