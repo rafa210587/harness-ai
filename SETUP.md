@@ -78,13 +78,14 @@ uv run harness version
 uv run harness doctor
 ```
 
-Quality gate:
+Quality and packaging gate:
 
 ```powershell
 uv run ruff format --check src tests .claude/hooks
 uv run ruff check src tests .claude/hooks
 uv run mypy src
 uv run pytest -m "not blender and not unity and not browser_runtime and not browser_external"
+uv build
 ```
 
 ## 4. Online DeepSeek validation
@@ -175,7 +176,7 @@ Everything configured:
 .\scripts\validate-local.ps1 -All
 ```
 
-The script loads `.env` into the current child-process environment, runs `uv sync`, quality checks, core tests, doctor, and the requested real integration gates.
+The script loads `.env` into the current child-process environment, runs `uv sync`, quality checks, core tests, `uv build`, doctor, and the requested real integration gates.
 
 ## 9. Useful CLI commands
 
@@ -201,9 +202,10 @@ uv run ruff format --check src tests .claude/hooks
 uv run ruff check src tests .claude/hooks
 uv run mypy src
 uv run pytest -m "not blender and not unity and not browser_runtime and not browser_external"
+uv build
 ```
 
-GitHub Actions runs the quality suite on Linux and a core packaging/test suite on Windows. Application-specific Blender, Unity, browser-runtime, and external-web gates are intentionally opt-in.
+GitHub Actions runs the quality suite and distribution build on Linux and the core acceptance plus distribution build on Windows. Application-specific Blender, Unity, browser-runtime, and external-web gates are intentionally opt-in.
 
 ## 11. What remains a real-machine gate
 
