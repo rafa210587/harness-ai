@@ -33,7 +33,9 @@ class EvalCaseResult(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
+    session_id: str
     missing_required_tools: list[str] = Field(default_factory=list)
+    tool_error_details: list[str] = Field(default_factory=list)
     reason: str | None = None
 
 
@@ -106,6 +108,7 @@ class EvalRunner:
         output_tokens = 0
         total_tokens = 0
         completed_tools: set[str] = set()
+        tool_error_details: list[str] = []
         if self._store is not None:
             events = await self._store.list_events(result.session_id)
             tool_errors = sum(event.event_type == "TOOL_ERROR" for event in events)
@@ -113,6 +116,10 @@ class EvalRunner:
                 event.event_type == "VERIFICATION_FAILED" for event in events
             )
             for event in events:
+                if event.event_type == "TOOL_ERROR":
+                    tool = event.payload.get("tool")
+                    error = event.payload.get("error")
+                    tool_error_details.append(f"{tool}: {error}")
                 if event.event_type == "TOOL_COMPLETED":
                     tool_name = event.payload.get("tool")
                     if isinstance(tool_name, str):
@@ -152,7 +159,9 @@ class EvalRunner:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             total_tokens=total_tokens,
+            session_id=result.session_id,
             missing_required_tools=missing_required_tools,
+            tool_error_details=tool_error_details,
             reason=result.reason,
         )
 
