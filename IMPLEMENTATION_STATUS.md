@@ -8,7 +8,7 @@
 
 - **Implemented** — code and automated tests exist.
 - **CI validated** — automated GitHub Actions checks have exercised the implementation without external credentials/apps.
-- **Local gate pending** — requires the real Windows host, credentials, login, Blender, Unity, Chromium, or visual acceptance.
+- **Local gate pending** — requires the real Windows host, credentials, login, Blender, Unity, Chrome, or visual acceptance.
 - **Not started** — intentionally not implemented yet.
 
 ## Current phase status
@@ -24,7 +24,7 @@
 | 6 | Sessions + persistence + artifacts | Implemented | SQLite integration tests, resume, schema guard, indexes, foreign keys | Process restart/resume on Rafael's machine |
 | 7 | Permissions + approvals + runtime hooks | Implemented | Deterministic permission/approval + tool-risk invariant tests | Manual approval UX validation |
 | 8 | Observability | Implemented | Persisted events, timing, token usage, CLI inspection; known secrets redacted at tool boundary | Inspect one real success and failure run |
-| 9 | Browser / Playwright | Implemented | Controller/tool tests; real-runtime smoke test exists but is excluded from fast CI | `pytest -m browser_runtime` after Playwright Chromium install |
+| 9 | Browser / Playwright | Implemented | Controller/tool tests; real-runtime smoke test exists but is excluded from fast CI | `pytest -m browser_runtime` against installed Google Chrome |
 | 10 | Interactive ChatGPT browser workflow | Not started | — | Requires authenticated browser profile and explicitly interactive/human-controlled flow |
 | 11 | Screenshot + vision abstraction | Implemented / partial | Screenshot artifacts, `VisionProvider`, `vision_inspect`, visual verifier tests | Choose/inject a real vision provider |
 | 12 | Blender | Implemented / partial | CLI/controller/tool tests with fakes; real Blender smoke test exists | `pytest -m blender` with real `BLENDER_PATH` |
@@ -58,7 +58,7 @@ single-agent tool loop
 SQLite sessions/messages/tool calls/events/approvals/artifacts
 SQLite schema version guard + indexes + foreign key enforcement
 structured observability
-Playwright browser tools
+Playwright browser tools with configurable browser channel; installed Chrome is the local default
 Blender CLI/Python tools
 Unity CLI/Editor-script tools
 ImageProvider abstraction
@@ -72,7 +72,7 @@ YAML eval runner
 smoke eval suite requiring real tool + skill use
 resource cleanup + cancelled session state
 Linux quality CI + Windows core/package CI
-explicit real-runtime smoke tests for Chromium, Blender and Unity
+explicit real-runtime smoke tests for Chrome, Blender and Unity
 Windows local acceptance PowerShell script with distribution build gate
 ```
 
@@ -83,7 +83,7 @@ Level 1: unit/contract behavior
 Level 2: integration with deterministic local components/fakes
 Level 3: GitHub CI on Linux
 Level 4: GitHub CI on Windows
-Level 5: real DeepSeek / Chromium / Blender / Unity on Rafael's host
+Level 5: real DeepSeek / Chrome / Blender / Unity on Rafael's host
 Level 6: complete cross-application workflow with visual verification
 ```
 
@@ -101,14 +101,16 @@ On the target Windows machine:
 git pull
 uv python install 3.12
 uv sync --all-groups
-uv run playwright install chromium
 Copy-Item .env.example .env
 ```
+
+The browser defaults to the installed Google Chrome. No `playwright install chromium` step is required unless `HARNESS_BROWSER_CHANNEL=playwright` is selected explicitly.
 
 Fill the capabilities you intend to test:
 
 ```dotenv
 DEEPSEEK_API_KEY=...
+HARNESS_BROWSER_CHANNEL=chrome
 BLENDER_PATH=...
 UNITY_PATH=...
 HARNESS_UNITY_SMOKE_PROJECT=C:\path\to\DisposableUnitySmokeProject
