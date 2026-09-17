@@ -39,6 +39,38 @@
       ],
       "enabled": true,
       "timeout": 15000
+    },
+
+    // Candidate integrations remain disabled until their real-host parity gates run.
+    "unityMCP": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "--from",
+        "mcpforunityserver==10.2.0",
+        "mcp-for-unity",
+        "--transport",
+        "stdio"
+      ],
+      "enabled": false,
+      "timeout": 300000
+    },
+
+    "blenderMCP": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "--from",
+        "mcp-for-blender==1.9.1",
+        "mcp-for-blender"
+      ],
+      "environment": {
+        "BLENDER_HOST": "localhost",
+        "BLENDER_PORT": "9876",
+        "DISABLE_TELEMETRY": "true"
+      },
+      "enabled": false,
+      "timeout": 300000
     }
   }
 }
