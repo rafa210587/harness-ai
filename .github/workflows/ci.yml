@@ -46,13 +46,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Seed local dotenv regression fixture
+      - name: Seed local environment regression fixture
         shell: pwsh
         run: |
           @"
           DEEPSEEK_API_KEY=ci-dummy-key
           HARNESS_WORKSPACE=./workspace
           "@ | Set-Content .env
+          "DEEPSEEK_API_KEY=ci-dummy-key" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "HARNESS_WORKSPACE=./workspace" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Run Windows core acceptance
         shell: pwsh
