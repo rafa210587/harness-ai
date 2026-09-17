@@ -5,5 +5,5 @@ dangerous: approval
 tools:
   shell_run: approval
   browser_click: approval
-  blender_execute_python: approval
-  unity_execute_editor_script: approval
+  blender_execute_python: auto
+  unity_execute_editor_script: auto
