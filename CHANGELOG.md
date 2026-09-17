@@ -36,8 +36,9 @@
 - Resource cleanup and cancelled-session state.
 - YAML eval runner with required-tool assertions, error/step/token metrics, and a real-tool smoke suite.
 - Linux quality CI and Windows core acceptance CI.
+- Distribution builds validated on both Linux and Windows CI paths.
 - Opt-in real-runtime smoke tests for Chromium, Blender, and Unity.
-- Windows `scripts/validate-local.ps1` acceptance workflow.
+- Windows `scripts/validate-local.ps1` acceptance workflow, including `uv build`.
 
 ### Development workflow
 
