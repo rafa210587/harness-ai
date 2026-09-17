@@ -65,7 +65,7 @@ HARNESS_BROWSER_CHANNEL=chrome
 BLENDER_PATH=
 UNITY_PATH=
 
-# Use a disposable Unity project for integration tests.
+# Optional override. If omitted, validate-local.ps1 creates data/unity-smoke-project.
 HARNESS_UNITY_SMOKE_PROJECT=
 ```
 
@@ -151,22 +151,39 @@ The Blender smoke test launches Blender in background mode and validates real ge
 
 ## 7. Unity validation
 
-Set:
+Set only the Unity executable for the normal local acceptance flow:
 
 ```dotenv
 UNITY_PATH=C:\path\to\Unity.exe
+```
+
+Then run:
+
+```powershell
+.\scripts\validate-local.ps1 -Unity
+```
+
+If `HARNESS_UNITY_SMOKE_PROJECT` is not configured, the script creates a disposable project at:
+
+```text
+data/unity-smoke-project
+```
+
+The directory is reused on later runs. If that path already exists but is not a valid Unity project, validation stops instead of deleting or overwriting it.
+
+You can still override the smoke project explicitly:
+
+```dotenv
 HARNESS_UNITY_SMOKE_PROJECT=C:\path\to\disposable-unity-project
 ```
 
-The project must be disposable: the harness smoke test is allowed to generate Editor code in it.
+The project must be disposable: the smoke test is allowed to generate Editor code in it. Do not point the override at an important working project.
 
-Then:
+To run only the Unity pytest directly, `HARNESS_UNITY_SMOKE_PROJECT` must already point to a valid project:
 
 ```powershell
 uv run pytest -m unity
 ```
-
-Do not point `HARNESS_UNITY_SMOKE_PROJECT` at an important working project for the first validation.
 
 ## 8. One-command Windows acceptance
 
@@ -194,7 +211,7 @@ Everything configured:
 .\scripts\validate-local.ps1 -All
 ```
 
-The script deliberately keeps `.env` out of the deterministic core test process, then loads it only for requested capability gates that need real local credentials or application paths. It runs `uv sync`, quality checks, core tests, `uv build`, doctor, and the requested real integration gates.
+The script deliberately keeps `.env` out of the deterministic core test process, then loads it only for requested capability gates that need real local credentials or application paths. It runs `uv sync`, quality checks, core tests, `uv build`, doctor, and the requested real integration gates. For `-Unity`, it also creates/reuses the dedicated disposable smoke project when no override is configured.
 
 ## 9. Useful CLI commands
 
