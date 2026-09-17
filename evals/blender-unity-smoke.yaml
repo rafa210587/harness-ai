@@ -1,0 +1,26 @@
+scenarios:
+  - name: blender-to-unity-level6a
+    task: >-
+      Execute a real Blender-to-Unity workflow using tools, not a text-only answer.
+      Use blender_execute_python to create a cube named HarnessLevel6Cube, save
+      artifacts/level6_cube.blend, and export artifacts/level6_cube.fbx.
+      Copy the FBX with filesystem_copy to
+      unity-level6/Assets/Harness/level6_cube.fbx.
+      Use unity_project_info to inspect unity-level6.
+      Use unity_execute_editor_script to refresh/import the FBX, create a new
+      empty scene, instantiate the imported model as HarnessLevel6Cube at the
+      origin, and save the scene as Assets/HarnessLevel6.unity.
+      Verify the expected files using workspace filesystem tools only.
+      Do not use shell_run for verification.
+      Finish with the exact token LEVEL6A_OK only after the workflow has
+      actually completed.
+    content_contains:
+      - LEVEL6A_OK
+    required_tools:
+      - blender_execute_python
+      - filesystem_copy
+      - unity_project_info
+      - unity_execute_editor_script
+      - filesystem_list
+    max_steps: 14
+    max_tool_errors: 0

@@ -226,6 +226,14 @@ uv run harness resume <session-id>
 uv run harness eval evals/smoke.yaml
 ```
 
+Blender -> Unity Level 6A acceptance (real DeepSeek + real applications):
+
+```powershell
+.\scripts\validate-level6a.ps1
+```
+
+This creates/reuses `workspace/unity-level6`, runs `evals/blender-unity-smoke.yaml`, and verifies the generated `.blend`, `.fbx`, imported Unity FBX, and saved Unity scene. The command writes its eval report to `data/blender-unity-smoke-report.json`. Blender and Unity scripting are explicitly auto-allowed by `config/permissions.yaml`; `shell_run`, `browser_click`, and the global `dangerous` default remain approval-gated.
+
 Dangerous tools still require runtime approval unless the permission policy explicitly says otherwise.
 
 ## 10. Development checks

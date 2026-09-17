@@ -86,7 +86,7 @@ function Resolve-UnitySmokeProject {
             -batchmode `
             -nographics `
             -quit `
-            -projectPath $project `
+            -createProject $project `
             -logFile $logPath
     }
 

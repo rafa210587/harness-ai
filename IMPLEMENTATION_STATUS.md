@@ -36,7 +36,7 @@
 | 18 | Desktop/computer-control fallback | Not started | — | Decide only after CLI/API/browser gaps are proven |
 | 19 | Reliability / evals | Implemented / partial | YAML eval runner, required tools, token/step/error metrics, smoke suite | Run `evals/smoke.yaml` against real DeepSeek |
 | 20 | Packaging + bootstrap | Repo side implemented | `uv build` and core acceptance pass on Linux and Windows GitHub runners; local acceptance script includes the distribution build | Clean-clone / real-host acceptance on Rafael's Windows machine |
-| 21 | v1 end-to-end acceptance | Not started | Core prerequisites are implemented through CI Level 4 | Level 5 real host/app gates, then Level 6 cross-application workflows |
+| 21 | v1 end-to-end acceptance | In progress | Level 5 individual real-host gates passed; Level 6A Blender -> Unity workflow manually validated | Add real vision provider and complete Level 6B visual verification/correction |
 
 ## Core already implemented
 
@@ -87,7 +87,7 @@ Level 5: real DeepSeek / Chrome / Blender / Unity on Rafael's host
 Level 6: complete cross-application workflow with visual verification
 ```
 
-The core, including the Python distribution build, is validated through Level 4. Levels 5–6 are the next meaningful gates.
+The core, including the Python distribution build, is validated through Level 4. Level 5 has been validated on Rafael's Windows host for DeepSeek, Chrome, Blender, Unity, agent/tool use, and the real Blender -> Unity Level 6A workflow. Level 6B visual verification/correction remains.
 
 ## Known cleanup that should wait for local dependency resolution
 
