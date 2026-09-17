@@ -57,10 +57,11 @@ async def test_online_diagnostics_can_pass_with_fakes(tmp_path: Path) -> None:
     assert [result.ok for result in results] == [True, True, True, True]
     assert [result.name for result in results] == [
         "DeepSeek API",
-        "Chromium launch",
+        "Browser launch",
         "Blender launch",
         "Unity launch",
     ]
+    assert results[1].detail == "chrome launched successfully"
 
 
 async def test_online_diagnostics_report_missing_configuration(monkeypatch) -> None:
