@@ -337,13 +337,16 @@ The repository must not recreate these layers unless a documented OpenCode defec
 
 ### M0 — Baseline and freeze
 
-Status: REPOSITORY WORK COMPLETE / CI RUNNING
+Status: COMPLETE
 
 Tasks:
 
 - [x] record baseline SHA `bf46d6276e6a53ecc79300862332202fe18e89fa`
 - [x] create `migration/opencode-core`
 - [x] trigger CI on the migration branch
+- [x] Linux quality CI passes
+- [x] Windows core CI passes
+- [x] OpenCode foundation Windows CI passes
 - [x] freeze new feature work in the old runtime through `AGENTS.md`
 - [x] add migration decision to architecture/roadmap docs
 
@@ -371,7 +374,7 @@ Tasks:
 - [x] document OpenCode installation/version pin strategy
 - [x] add repository validator for `opencode debug config`
 - [x] configure official Playwright MCP as the first MCP integration
-- [ ] prove `opencode debug config` on CI
+- [x] prove `opencode debug config` on CI
 - [ ] prove `opencode debug config` on Rafael's Windows host
 - [ ] prove `opencode run`
 - [ ] connect real DeepSeek or current selected provider
@@ -385,6 +388,15 @@ OpenCode starts from the repository
 project config resolves
 real model works
 local MCP round-trip works
+```
+
+CI evidence:
+
+```text
+GitHub Actions run: 35286379422
+quality:             success
+windows-core:        success
+opencode-foundation: success
 ```
 
 ### M2 — Browser replacement benchmark
