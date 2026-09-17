@@ -1,0 +1,68 @@
+scenarios:
+  - name: filesystem-recovery
+    task: >-
+      Test bounded recovery from one expected filesystem error. First call
+      filesystem_read for acceptance/recovery.txt before creating it. After that
+      expected failure, create acceptance/recovery.txt with the exact text
+      recovery-ok using filesystem_write, read it successfully with
+      filesystem_read, and finish with RECOVERY_OK. Do not repeat the failing
+      read more than once and do not use shell_run.
+    content_contains:
+      - RECOVERY_OK
+    required_tools:
+      - filesystem_write
+      - filesystem_read
+    max_steps: 5
+    max_tool_errors: 1
+
+  - name: blender-modify-existing-artifact
+    task: >-
+      Use blender_execute_python on the existing artifacts/level6_cube.blend.
+      Open it, require an object named HarnessLevel6Cube, set its scale to
+      (1.25, 0.75, 1.5), save the modified source as
+      artifacts/full_acceptance_cube.blend, and render a 512x512 preview to
+      artifacts/full_acceptance_cube.png using a deterministic camera and light.
+      Return both paths as expected artifacts from the Blender tool call.
+      Then use filesystem_list on artifacts and verify both files are present.
+      Finish with BLENDER_RELIABILITY_OK. Do not use shell_run.
+    content_contains:
+      - BLENDER_RELIABILITY_OK
+    required_tools:
+      - blender_execute_python
+      - filesystem_list
+    max_steps: 5
+    max_tool_errors: 0
+
+  - name: unity-edit-existing-scene
+    task: >-
+      Use unity_project_info on unity-level6. Then use
+      unity_execute_editor_script to open Assets/HarnessLevel6.unity, find the
+      root GameObject HarnessLevel6Cube, add a BoxCollider only if one is not
+      already present, and save the result as
+      Assets/HarnessFullAcceptance.unity. The operation must be safe to rerun.
+      Use filesystem_list on unity-level6/Assets to verify the new scene exists.
+      Finish with UNITY_RELIABILITY_OK. Do not use shell_run.
+    content_contains:
+      - UNITY_RELIABILITY_OK
+    required_tools:
+      - unity_project_info
+      - unity_execute_editor_script
+      - filesystem_list
+    max_steps: 6
+    max_tool_errors: 0
+
+  - name: skills-and-artifact-inspection
+    task: >-
+      Use skill_list, then load both create-blender-prop and
+      import-asset-to-unity with skill_load. Use filesystem_list on artifacts
+      and unity-level6/Assets, and briefly confirm that the Level 6A Blender and
+      Unity outputs are visible. Finish with SKILLS_ARTIFACTS_OK. Do not use
+      shell_run.
+    content_contains:
+      - SKILLS_ARTIFACTS_OK
+    required_tools:
+      - skill_list
+      - skill_load
+      - filesystem_list
+    max_steps: 7
+    max_tool_errors: 0
