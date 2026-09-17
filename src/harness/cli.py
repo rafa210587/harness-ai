@@ -241,6 +241,17 @@ def eval_command(
             f"({report.success_rate:.1%}); average steps: {report.average_steps:.2f}; "
             f"tokens: {report.total_tokens}"
         )
+        for case in report.cases:
+            if case.passed:
+                continue
+            console.print(f"[yellow]Session:[/] {case.session_id}")
+            for detail in case.tool_error_details:
+                console.print(f"[red]Tool error:[/] {detail}")
+            if case.missing_required_tools:
+                console.print(
+                    "[yellow]Missing required tools:[/] "
+                    + ", ".join(case.missing_required_tools)
+                )
 
         if json_out is not None:
             json_out.parent.mkdir(parents=True, exist_ok=True)
