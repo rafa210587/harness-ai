@@ -31,12 +31,12 @@
 | 13 | Unity | Implemented / partial | CLI/controller/editor-script tests with fakes; real Unity smoke test exists | `pytest -m unity` with real `UNITY_PATH` + disposable smoke project |
 | 14 | Generic image providers | Abstraction implemented | `ImageProvider` + `image_generate` tool tests | Add at least one concrete provider if autonomous image generation is in v1 scope |
 | 15 | Verification / self-correction | Implemented | Generic verifier + visual verifier retry tests | Real image/vision correction loop |
-| 16 | Context management | Implemented | Compaction tests incl. tool-call boundary safety | Evaluate long real sessions |
+| 16 | Context management | Implemented | Compaction tests incl. tool-call boundary safety | Run forced-compaction scenario in `validate-full-local.ps1` |
 | 17 | Runtime skills | Implemented | Bounded loader tests; real Blender/Unity/browser skills; smoke eval requires `skill_list` + `skill_load` | Run real DeepSeek smoke eval |
 | 18 | Desktop/computer-control fallback | Not started | — | Decide only after CLI/API/browser gaps are proven |
-| 19 | Reliability / evals | Implemented / partial | YAML eval runner, required tools, token/step/error metrics, smoke suite | Run `evals/smoke.yaml` against real DeepSeek |
+| 19 | Reliability / evals | Implemented / partial | YAML eval runner, required tools, token/step/error metrics, smoke + full-local reliability suites | Run `scripts/validate-full-local.ps1` against the real host |
 | 20 | Packaging + bootstrap | Repo side implemented | `uv build` and core acceptance pass on Linux and Windows GitHub runners; local acceptance script includes the distribution build | Clean-clone / real-host acceptance on Rafael's Windows machine |
-| 21 | v1 end-to-end acceptance | In progress | Level 5 individual real-host gates passed; Level 6A Blender -> Unity workflow manually validated | Add real vision provider and complete Level 6B visual verification/correction |
+| 21 | v1 end-to-end acceptance | In progress | Level 5 individual real-host gates passed; Level 6A Blender -> Unity workflow validated; full-local package implemented | Run the full-local package, then add real vision provider and complete Level 6B visual verification/correction |
 
 ## Core already implemented
 
