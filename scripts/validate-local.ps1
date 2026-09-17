@@ -48,6 +48,7 @@ Invoke-Step "Mypy" { uv run mypy src }
 Invoke-Step "Core tests" {
     uv run pytest -m "not blender and not unity and not browser_runtime and not browser_external"
 }
+Invoke-Step "Build distribution" { uv build }
 Invoke-Step "Offline doctor" { uv run harness doctor }
 
 if ($Online) {
