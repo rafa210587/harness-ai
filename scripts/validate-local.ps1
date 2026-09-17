@@ -62,25 +62,37 @@ function Resolve-UnitySmokeProject {
     }
 
     $project = Join-Path (Get-Location).Path "data\unity-smoke-project"
+    $logPath = Join-Path (Get-Location).Path "data\unity-smoke-create.log"
+
     if (Test-Path $project) {
-        if (-not (Test-UnityProject $project)) {
+        if (Test-UnityProject $project) {
+            Write-Host "Reusing disposable Unity smoke project: $project"
+            return $project
+        }
+
+        $items = @(Get-ChildItem -LiteralPath $project -Force -ErrorAction Stop)
+        if ($items.Count -eq 0) {
+            Remove-Item -LiteralPath $project -Force
+        }
+        else {
             throw "Automatic Unity smoke path exists but is not a valid Unity project: $project"
         }
-        Write-Host "Reusing disposable Unity smoke project: $project"
-        return $project
     }
+
+    New-Item -ItemType Directory -Force -Path (Split-Path $logPath -Parent) | Out-Null
 
     Invoke-Step "Create disposable Unity smoke project" {
         & $env:UNITY_PATH `
             -batchmode `
             -nographics `
             -quit `
-            -createProject $project `
-            -logFile -
+            -projectPath $project `
+            -logFile $logPath
     }
 
     if (-not (Test-UnityProject $project)) {
-        throw "Unity exited successfully but did not create a valid project: $project"
+        $logHint = if (Test-Path $logPath) { " See Unity log: $logPath" } else { "" }
+        throw "Unity exited successfully but did not create a valid project: $project.$logHint"
     }
 
     Write-Host "Created disposable Unity smoke project: $project"
@@ -139,4 +151,4 @@ if ($Unity) {
     Invoke-Step "Unity smoke" { uv run pytest -m unity }
 }
 
-Write-Host "`nLocal validation completed successfully." -ForegroundColor Green
+Write-Host "`nLocal validation completed successfully."
