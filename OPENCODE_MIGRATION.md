@@ -337,15 +337,15 @@ The repository must not recreate these layers unless a documented OpenCode defec
 
 ### M0 — Baseline and freeze
 
-Status: IN PROGRESS
+Status: REPOSITORY WORK COMPLETE / CI RUNNING
 
 Tasks:
 
 - [x] record baseline SHA `bf46d6276e6a53ecc79300862332202fe18e89fa`
 - [x] create `migration/opencode-core`
-- [ ] record current CI status on the migration branch
-- [ ] freeze new feature work in the old runtime
-- [ ] add migration decision to architecture/roadmap docs
+- [x] trigger CI on the migration branch
+- [x] freeze new feature work in the old runtime through `AGENTS.md`
+- [x] add migration decision to architecture/roadmap docs
 
 Exit:
 
@@ -357,16 +357,26 @@ migration branch exists
 
 ### M1 — OpenCode foundation spike
 
+Pinned baseline:
+
+```text
+OpenCode stable: 1.18.31
+Playwright MCP: 0.0.81
+```
+
 Tasks:
 
-- [ ] add valid project `opencode.jsonc`
-- [ ] define safe initial permissions
-- [ ] document OpenCode installation/version pin strategy
-- [ ] prove `opencode debug config`
+- [x] add project `opencode.jsonc`
+- [x] define safe initial permissions
+- [x] document OpenCode installation/version pin strategy
+- [x] add repository validator for `opencode debug config`
+- [x] configure official Playwright MCP as the first MCP integration
+- [ ] prove `opencode debug config` on CI
+- [ ] prove `opencode debug config` on Rafael's Windows host
 - [ ] prove `opencode run`
 - [ ] connect real DeepSeek or current selected provider
 - [ ] prove one real model response
-- [ ] add one minimal MCP smoke server only if needed to prove local MCP round-trip
+- [ ] prove model -> Playwright MCP -> Chrome round-trip
 
 Exit:
 
