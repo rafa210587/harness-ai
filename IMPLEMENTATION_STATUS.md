@@ -6,6 +6,36 @@
 >
 > `EXECUTION_PLAN.md` remains the durable roadmap. This file tracks current evidence so roadmap intent is not confused with completed validation.
 
+## OpenCode migration checkpoint
+
+Repository-side work completed on `migration/opencode-core`:
+
+```text
+baseline SHA recorded: bf46d6276e6a53ecc79300862332202fe18e89fa
+OpenCode-first ADR adopted
+migration specification committed
+OpenCode stable pinned: 1.18.31
+Playwright MCP pinned: 0.0.81
+project opencode.jsonc added
+conservative permission baseline added
+Windows validation script added
+CI job added for OpenCode configuration
+```
+
+Still pending real-host evidence:
+
+```text
+OpenCode 1.18.31 installed on Rafael's Windows host
+DeepSeek authenticated through OpenCode
+real opencode run
+real Playwright MCP -> Chrome interaction
+Unity MCP benchmark
+Blender MCP benchmark
+runtime cutover/deletion
+```
+
+The old custom runtime remains only as the parity baseline until those gates pass.
+
 ## Status meanings
 
 - **Implemented** — code and automated tests exist.
