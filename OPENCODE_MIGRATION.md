@@ -229,7 +229,17 @@ Do not migrate the current Python Playwright code into another custom MCP before
 Primary candidate:
 
 ```text
-CoplayDev/unity-mcp
+CoplayDev/unity-mcp v10.2.0
+package: com.coplaydev.unity-mcp
+Unity requirement: 2021.3+
+```
+
+The upstream project has an OpenCode configurator and can register either stdio or remote MCP transport. For this repository we will pin the Unity package version and keep project-level OpenCode configuration authoritative rather than silently relying on mutable global config.
+
+Pinned Unity Package Manager source for the benchmark:
+
+```text
+https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.2.0
 ```
 
 It must be validated against our current Unity Level 5 and Blender -> Unity Level 6A scenarios before the custom Unity controller is removed.
@@ -400,6 +410,17 @@ opencode-foundation: success
 ```
 
 ### M2 — Browser replacement benchmark
+
+Current finding:
+
+```text
+@playwright/mcp 0.0.81 is the primary automation candidate.
+It provides allowed/blocked origin controls and workspace file restrictions.
+However, upstream explicitly states origin allow/block lists are NOT a security boundary
+and do not cover redirects.
+```
+
+Therefore the custom browser implementation may only be deleted after we prove an equivalent DNS/redirect/private-network SSRF boundary. If the MCP cannot provide that itself, retain or rebuild only the smallest security-policy layer needed; do not retain a second browser automation stack merely for compatibility.
 
 Tasks:
 
