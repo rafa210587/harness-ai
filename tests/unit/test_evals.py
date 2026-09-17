@@ -110,6 +110,7 @@ async def test_eval_runner_aggregates_persisted_llm_usage(tmp_path: Path) -> Non
     assert report.output_tokens == 4
     assert report.total_tokens == 14
     assert report.cases[0].total_tokens == 14
+    assert report.cases[0].session_id == "usage-session"
 
 
 async def test_eval_runner_requires_successful_tool_execution(tmp_path: Path) -> None:
@@ -142,3 +143,40 @@ async def test_eval_runner_requires_successful_tool_execution(tmp_path: Path) ->
 
     assert report.passed == 0
     assert report.cases[0].missing_required_tools == ["filesystem_read"]
+
+
+async def test_eval_runner_reports_tool_error_details(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "harness.db")
+    await store.initialize()
+    await store.create_session("error-session", "copy file")
+    await store.add_event(
+        "error-session",
+        "TOOL_ERROR",
+        {
+            "tool": "filesystem_copy",
+            "error": "Destination already exists: target.fbx",
+        },
+    )
+
+    result = AgentRunResult(
+        status=AgentStatus.COMPLETED,
+        content="done",
+        steps=2,
+        session_id="error-session",
+    )
+    runner = EvalRunner(lambda _scenario: FakeAgent(result), store=store)
+    report = await runner.run(
+        [
+            EvalScenario(
+                name="tool-error",
+                task="copy file",
+                max_tool_errors=0,
+            )
+        ]
+    )
+
+    assert report.passed == 0
+    assert report.cases[0].session_id == "error-session"
+    assert report.cases[0].tool_error_details == [
+        "filesystem_copy: Destination already exists: target.fbx"
+    ]
