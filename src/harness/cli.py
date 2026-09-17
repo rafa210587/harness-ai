@@ -249,8 +249,7 @@ def eval_command(
                 console.print(f"[red]Tool error:[/] {detail}")
             if case.missing_required_tools:
                 console.print(
-                    "[yellow]Missing required tools:[/] "
-                    + ", ".join(case.missing_required_tools)
+                    "[yellow]Missing required tools:[/] " + ", ".join(case.missing_required_tools)
                 )
 
         if json_out is not None:
