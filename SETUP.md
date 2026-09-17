@@ -16,10 +16,12 @@ DeepSeek API key for real-agent runs
 Capability-specific:
 
 ```text
-Chromium via Playwright
+Google Chrome installed locally (default browser runtime)
 Blender
 Unity Editor
 ```
+
+The harness can still use Playwright-managed Chromium when explicitly configured, but local Windows validation defaults to the installed Google Chrome and therefore does not require a Playwright browser download.
 
 The harness does not require Docker, Redis, PostgreSQL, Kubernetes, Node.js, LangGraph, or Temporal.
 
@@ -31,7 +33,6 @@ cd harness-ai
 
 uv python install 3.12
 uv sync --all-groups
-uv run playwright install chromium
 ```
 
 `uv.lock` is committed. Do not edit it manually.
@@ -59,6 +60,7 @@ HARNESS_DATA_DIR=./data
 HARNESS_WORKSPACE=./workspace
 HARNESS_BROWSER_PROFILE=./data/browser-profile
 HARNESS_BROWSER_HEADLESS=false
+HARNESS_BROWSER_CHANNEL=chrome
 
 BLENDER_PATH=
 UNITY_PATH=
@@ -68,6 +70,20 @@ HARNESS_UNITY_SMOKE_PROJECT=
 ```
 
 `.env` is local-only and must never be committed.
+
+`HARNESS_BROWSER_CHANNEL=chrome` tells Playwright to launch the Google Chrome installed on the machine. The harness always uses its own profile directory; do not point `HARNESS_BROWSER_PROFILE` at your personal Chrome profile.
+
+To opt back into Playwright-managed Chromium instead:
+
+```dotenv
+HARNESS_BROWSER_CHANNEL=playwright
+```
+
+and install its browser binary once:
+
+```powershell
+uv run playwright install chromium
+```
 
 The runtime blocks direct filesystem access to common secret files such as `.env`, private keys, credential files, and credential directories. Known configured secrets are also redacted from ToolResults before they reach the model or persistence.
 
@@ -101,11 +117,13 @@ The smoke suite requires actual tool use, including filesystem operations and lo
 
 ## 5. Browser validation
 
-Chromium runtime smoke does not require internet access:
+The browser runtime smoke uses the installed Google Chrome by default and does not require internet access:
 
 ```powershell
 uv run pytest -m browser_runtime
 ```
+
+Expected result is one passing browser-runtime test that launches Chrome headlessly, reads a local `data:` page, and writes a screenshot.
 
 Tests that use real external websites remain separately marked:
 
@@ -214,6 +232,7 @@ CI does not prove:
 ```text
 real DeepSeek account access/billing
 local authenticated browser profiles
+local Google Chrome runtime behavior
 local Blender installation behavior
 local Unity installation/project behavior
 visual quality of generated assets
