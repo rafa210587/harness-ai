@@ -14,7 +14,6 @@
     "skill": "allow",
     "external_directory": "deny",
     "edit": "ask",
-    "write": "ask",
     "bash": {
       "*": "ask",
       "git status*": "allow",
