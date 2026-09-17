@@ -108,4 +108,4 @@ jobs:
 
       - name: Validate OpenCode config
         shell: pwsh
-        run: .\scripts\validate-opencode.ps1 -SkipMcp
+        run: .\scripts\validate-opencode.ps1
