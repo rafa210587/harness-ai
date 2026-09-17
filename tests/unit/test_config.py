@@ -29,6 +29,17 @@ def test_settings_environment_override(monkeypatch) -> None:
 
 
 def test_load_settings_precedence_and_permissions(tmp_path: Path, monkeypatch) -> None:
+    for name in (
+        "HARNESS_WORKSPACE",
+        "HARNESS_BROWSER_HEADLESS",
+        "DEEPSEEK_BASE_URL",
+        "DEEPSEEK_MODEL",
+        "AGENT_LLM_TIMEOUT_SECONDS",
+        "AGENT_LLM_MAX_ATTEMPTS",
+        "AGENT_LLM_RETRY_BASE_SECONDS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     (config_dir / "harness.yaml").write_text(
