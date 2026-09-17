@@ -11,6 +11,16 @@ if (-not (Test-Path "pyproject.toml")) {
 
 $results = [System.Collections.Generic.List[object]]::new()
 
+$reportPaths = @(
+    "data\smoke-report.json",
+    "data\blender-unity-smoke-report.json",
+    "data\full-local-reliability-report.json",
+    "data\full-local-acceptance-report.json"
+)
+foreach ($reportPath in $reportPaths) {
+    Remove-Item $reportPath -Force -ErrorAction SilentlyContinue
+}
+
 function Invoke-AcceptanceGate {
     param(
         [string]$Name,
@@ -114,11 +124,15 @@ $requiredArtifacts = @(
     "workspace\artifacts\level6_cube.blend",
     "workspace\artifacts\level6_cube.fbx",
     "workspace\unity-level6\Assets\Harness\level6_cube.fbx",
-    "workspace\unity-level6\Assets\HarnessLevel6.unity",
-    "workspace\artifacts\full_acceptance_cube.blend",
-    "workspace\artifacts\full_acceptance_cube.png",
-    "workspace\unity-level6\Assets\HarnessFullAcceptance.unity"
+    "workspace\unity-level6\Assets\HarnessLevel6.unity"
 )
+if (-not $SkipReliability) {
+    $requiredArtifacts += @(
+        "workspace\artifacts\full_acceptance_cube.blend",
+        "workspace\artifacts\full_acceptance_cube.png",
+        "workspace\unity-level6\Assets\HarnessFullAcceptance.unity"
+    )
+}
 
 $artifactResults = foreach ($path in $requiredArtifacts) {
     [pscustomobject]@{
