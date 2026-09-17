@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, migration/opencode-core]
   pull_request:
 
 jobs:
@@ -52,7 +52,8 @@ jobs:
           $files = @(
             "scripts/validate-local.ps1",
             "scripts/validate-level6a.ps1",
-            "scripts/validate-full-local.ps1"
+            "scripts/validate-full-local.ps1",
+            "scripts/validate-opencode.ps1"
           )
           foreach ($file in $files) {
             $tokens = $null
@@ -81,3 +82,30 @@ jobs:
       - name: Run Windows core acceptance
         shell: pwsh
         run: .\scripts\validate-local.ps1
+
+
+  opencode-foundation:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned OpenCode
+        shell: pwsh
+        run: npm install -g opencode-ai@1.18.31
+
+      - name: Verify pinned Playwright MCP package exists
+        shell: pwsh
+        run: |
+          $version = (npm view "@playwright/mcp@0.0.81" version).Trim()
+          if ($version -ne "0.0.81") {
+            throw "Expected @playwright/mcp 0.0.81, got '$version'."
+          }
+
+      - name: Validate OpenCode config
+        shell: pwsh
+        run: .\scripts\validate-opencode.ps1 -SkipMcp
