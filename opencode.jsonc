@@ -8,12 +8,26 @@
   // Conservative migration defaults. Relax only after parity/security gates.
   "permission": {
     "*": "ask",
-    "read": "allow",
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow",
+      "*.pem": "deny",
+      "*.key": "deny"
+    },
     "glob": "allow",
     "grep": "allow",
     "skill": "allow",
     "external_directory": "deny",
-    "edit": "ask",
+    "edit": {
+      "*": "ask",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "ask",
+      "*.pem": "deny",
+      "*.key": "deny"
+    },
     "bash": {
       "*": "ask",
       "git status*": "allow",
