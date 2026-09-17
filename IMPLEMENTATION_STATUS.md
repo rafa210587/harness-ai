@@ -2,6 +2,8 @@
 
 > Factual snapshot of what exists in code, what CI has proved, and what still requires Rafael's local Windows machine.
 >
+> **Migration status:** OpenCode-first migration is active on `migration/opencode-core`. The current custom runtime remains the evidence baseline until each replacement passes parity. See `OPENCODE_MIGRATION.md`.
+>
 > `EXECUTION_PLAN.md` remains the durable roadmap. This file tracks current evidence so roadmap intent is not confused with completed validation.
 
 ## Status meanings
