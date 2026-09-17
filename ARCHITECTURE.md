@@ -1,7 +1,7 @@
 # Local AI Harness — Architecture
 
-> Status: Initial Architecture / MVP  
-> Goal: build a small, local, functional AI harness capable of reasoning with DeepSeek and operating real tools on the user's computer, including shell, filesystem, browser, Blender and Unity.
+> Status: OpenCode-core migration active  
+> Goal: build a local AI computer/workflow system on top of the most mature available runtime and integrations, retaining custom code only for proven gaps.
 
 ---
 
@@ -88,36 +88,52 @@ The harness decides **how to safely execute it**.
 
 # 3. Main Architectural Decisions
 
-## ADR-001 — Build our own harness
+## ADR-001 — OpenCode-first runtime
+
+Status:
+
+```text
+SUPERSEDES the original "build our own harness" decision.
+```
 
 Decision:
 
 ```text
-Build a small custom harness.
+Use OpenCode as the generic agent runtime when it satisfies the requirement.
+Prefer mature built-ins, official MCPs and mature external integrations over custom code.
+Build custom runtime/integration code only for measured gaps.
 ```
 
-Do not use OpenCode as the core runtime.
+Rationale:
 
-OpenCode can still be studied and reused conceptually.
+The custom runtime has proven the product direction through real DeepSeek, Chrome, Blender and Unity validation, including a real Blender -> Unity workflow. That work also made the generic-runtime maintenance cost concrete.
 
-Reason:
+OpenCode now provides mature generic capabilities that overlap with responsibilities implemented here:
 
-The target system needs capabilities beyond coding:
+- provider/model integration;
+- agent loop and tool orchestration;
+- sessions;
+- context and compaction;
+- permissions;
+- coding/filesystem/shell tools;
+- skills and agents;
+- MCP client support.
 
-- browser control
-- Blender control
-- Unity control
-- image generation
-- screenshots
-- vision
-- human approvals
-- filesystem operations
-- shell operations
-- potentially desktop automation
+The architecture therefore moves up one level. The product goal remains broader than coding, but those broader capabilities should be connected to OpenCode through the best available integration rather than forcing us to own the generic agent runtime.
 
-Using a coding harness as the central abstraction would eventually require working around its assumptions.
+Replacement order:
 
-Our runtime should treat coding as only one capability among many.
+```text
+OpenCode built-in
+-> official / well-maintained MCP or native integration
+-> mature open-source integration
+-> thin adapter
+-> custom implementation only for a proven gap
+```
+
+Existing code is not retained merely because it already exists.
+
+The detailed migration, parity gates, deletion rules and residue scan live in `OPENCODE_MIGRATION.md`.
 
 ---
 
@@ -1876,14 +1892,14 @@ Blender addon + local connection
 
 | Area | Decision |
 |---|---|
-| Runtime | Custom |
-| Language | Python 3.12+ |
-| Interface | CLI |
-| Main LLM | DeepSeek |
-| Agent architecture | Single agent initially |
-| Orchestration | Simple internal loop |
-| Persistence | SQLite |
-| Browser | Playwright |
+| Runtime | OpenCode-first; custom runtime is being retired |
+| Language | OpenCode runtime + Python only for retained custom integrations |
+| Interface | OpenCode CLI/headless; product scripts for diagnostics/acceptance |
+| Main LLM | Provider selected/configured through OpenCode; DeepSeek remains first real-host baseline |
+| Agent architecture | OpenCode agents/skills when justified by evals |
+| Orchestration | OpenCode |
+| Persistence | OpenCode sessions; domain artifacts only if still required |
+| Browser | Evaluate official Playwright MCP first; custom Playwright is a replacement candidate |
 | Browser profile | Persistent, configurable |
 | Blender | Python + Blender CLI first |
 | Unity | Editor scripts + CLI first |
