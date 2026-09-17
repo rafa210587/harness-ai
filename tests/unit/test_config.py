@@ -3,8 +3,21 @@ from pathlib import Path
 from harness.config import PermissionAction, Settings, load_settings
 
 
+_DEFAULT_ENV_KEYS = (
+    "DEEPSEEK_API_KEY",
+    "DEEPSEEK_BASE_URL",
+    "DEEPSEEK_MODEL",
+    "HARNESS_WORKSPACE",
+    "AGENT_MAX_STEPS",
+    "AGENT_LLM_TIMEOUT_SECONDS",
+    "AGENT_LLM_MAX_ATTEMPTS",
+    "AGENT_LLM_RETRY_BASE_SECONDS",
+)
+
+
 def test_settings_defaults(monkeypatch) -> None:
-    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    for name in _DEFAULT_ENV_KEYS:
+        monkeypatch.delenv(name, raising=False)
     settings = Settings(_env_file=None)
 
     assert settings.deepseek_base_url == "https://api.deepseek.com"
