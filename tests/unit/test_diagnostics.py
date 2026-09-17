@@ -63,7 +63,8 @@ async def test_online_diagnostics_can_pass_with_fakes(tmp_path: Path) -> None:
     ]
 
 
-async def test_online_diagnostics_report_missing_configuration() -> None:
+async def test_online_diagnostics_report_missing_configuration(monkeypatch) -> None:
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     settings = Settings(_env_file=None)
     results = await run_online_checks(settings, browser_factory=lambda _profile: FakeBrowser())
 
