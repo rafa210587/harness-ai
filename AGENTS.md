@@ -7,10 +7,11 @@ This repository implements a small local AI harness.
 Read these documents before architectural or roadmap work:
 
 1. `ARCHITECTURE.md`
-2. `EXECUTION_PLAN.md`
-3. `IMPLEMENTATION_STATUS.md`
-4. `REPOSITORY.md`
-5. `SETUP.md`
+2. `OPENCODE_MIGRATION.md`
+3. `EXECUTION_PLAN.md`
+4. `IMPLEMENTATION_STATUS.md`
+5. `REPOSITORY.md`
+6. `SETUP.md`
 
 `EXECUTION_PLAN.md` is the permanent source of truth for build order, phase dependencies, ownership and exit criteria. It does not replace temporary feature specs.
 
@@ -18,8 +19,10 @@ Read these documents before architectural or roadmap work:
 
 ## Core constraints
 
-- Use Python 3.12 and `uv`.
-- Keep the core runtime small and explicit.
+- During the active migration, OpenCode is the target owner of generic agent-runtime behavior; do not expand the custom AgentLoop/provider/session/context/ToolRegistry stack unless required to preserve an acceptance gate.
+- Before building a capability, evaluate OpenCode built-ins, official/well-maintained MCPs, mature external integrations, then thin adapters; custom implementation is last resort.
+- Use Python 3.12 and `uv` for retained Python integrations.
+- Keep retained custom code small and explicit.
 - Do not introduce LangChain, LangGraph, Temporal, Redis, PostgreSQL, a vector database, Kubernetes or a multi-agent framework without a concrete requirement and architecture decision.
 - Prefer vertical slices over speculative abstractions.
 - DeepSeek is the first LLM provider; provider-specific code stays behind the provider interface.
