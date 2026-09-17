@@ -2,6 +2,57 @@
 
 Windows is the primary local target. CI also validates the core on Linux and Windows.
 
+## Active OpenCode migration bootstrap
+
+The migration branch uses stable OpenCode `1.18.31` and official Playwright MCP `0.0.81`.
+
+Current migration prerequisites:
+
+```text
+Node.js 20+
+npm / npx
+OpenCode 1.18.31
+Python 3.12 + uv
+Google Chrome
+```
+
+Install the pinned OpenCode version:
+
+```powershell
+npm install -g opencode-ai@1.18.31
+opencode --version
+```
+
+Expected:
+
+```text
+1.18.31
+```
+
+Validate repository configuration:
+
+```powershell
+.\scripts\validate-opencode.ps1
+```
+
+The committed `opencode.jsonc` configures official Playwright MCP `@playwright/mcp@0.0.81` with the installed Google Chrome channel.
+
+Provider authentication stays outside Git. For the DeepSeek parity baseline:
+
+```powershell
+opencode
+```
+
+Then use:
+
+```text
+/connect  -> DeepSeek
+/models   -> choose the desired DeepSeek model
+```
+
+Do not remove custom runtime code until its replacement passes the gates in `OPENCODE_MIGRATION.md`.
+
+
 ## Requirements
 
 Required:
