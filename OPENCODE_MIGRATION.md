@@ -385,6 +385,7 @@ Tasks:
 - [x] add repository validator for `opencode debug config`
 - [x] configure official Playwright MCP as the first MCP integration
 - [x] prove `opencode debug config` on CI
+- [x] prove enabled Playwright MCP handshake on Windows CI
 - [ ] prove `opencode debug config` on Rafael's Windows host
 - [ ] prove `opencode run`
 - [ ] connect real DeepSeek or current selected provider
@@ -408,6 +409,22 @@ quality:             success
 windows-core:        success
 opencode-foundation: success
 ```
+
+Additional MCP evidence:
+
+```text
+GitHub Actions run: 35286792113
+quality:             success
+windows-core:        success
+opencode-foundation: success
+
+OpenCode MCP status:
+✓ playwright connected
+○ unityMCP disabled
+○ blenderMCP disabled
+```
+
+The validator now fails if an enabled MCP reports `failed` or `timed out`. This closes a false-green discovered in an earlier run where `opencode mcp list` returned exit code 0 despite a server timeout.
 
 ### M2 — Browser replacement benchmark
 
