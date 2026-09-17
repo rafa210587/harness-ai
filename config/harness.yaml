@@ -10,6 +10,7 @@ skills:
 browser:
   profile_path: ./data/browser-profile
   headless: false
+  channel: chrome
 
 agent:
   max_steps: 50
