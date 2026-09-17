@@ -62,11 +62,23 @@ if (-not $SkipMcp) {
     Write-Host "[ok] @playwright/mcp@$ExpectedPlaywrightMcpVersion resolves"
 
     Write-Host "Checking OpenCode MCP registration..."
-    & opencode mcp list | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "opencode mcp list failed."
+    $mcpOutput = (& opencode mcp list 2>&1 | Out-String)
+    $mcpExitCode = $LASTEXITCODE
+    $mcpOutput | Write-Host
+
+    if ($mcpExitCode -ne 0) {
+        throw "opencode mcp list failed with exit code $mcpExitCode."
     }
-    Write-Host "[ok] MCP list completed"
+
+    if ($mcpOutput -match "(?i)\bfailed\b|timed out") {
+        throw "At least one enabled MCP server failed to connect."
+    }
+
+    if ($mcpOutput -notmatch "(?i)playwright") {
+        throw "The configured Playwright MCP server was not listed."
+    }
+
+    Write-Host "[ok] Enabled MCP servers connected successfully"
 }
 
 Write-Host ""
