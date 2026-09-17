@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from harness.config import PermissionAction, Settings, load_settings
+from harness.config import BrowserChannel, PermissionAction, Settings, load_settings
 
 
 def test_settings_defaults(monkeypatch) -> None:
@@ -8,6 +8,7 @@ def test_settings_defaults(monkeypatch) -> None:
     monkeypatch.delenv("DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     monkeypatch.delenv("HARNESS_WORKSPACE", raising=False)
+    monkeypatch.delenv("HARNESS_BROWSER_CHANNEL", raising=False)
     monkeypatch.delenv("AGENT_MAX_STEPS", raising=False)
     monkeypatch.delenv("AGENT_LLM_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv("AGENT_LLM_MAX_ATTEMPTS", raising=False)
@@ -17,6 +18,8 @@ def test_settings_defaults(monkeypatch) -> None:
     assert settings.deepseek_base_url == "https://api.deepseek.com"
     assert settings.deepseek_model == "deepseek-flash"
     assert settings.harness_workspace == Path("workspace")
+    assert settings.harness_browser_channel is BrowserChannel.CHROME
+    assert settings.harness_browser_channel.playwright_channel == "chrome"
     assert settings.agent_max_steps == 50
     assert settings.agent_llm_timeout_seconds == 120
     assert settings.agent_llm_max_attempts == 3
@@ -25,12 +28,15 @@ def test_settings_defaults(monkeypatch) -> None:
 
 def test_settings_environment_override(monkeypatch) -> None:
     monkeypatch.setenv("DEEPSEEK_MODEL", "custom-model")
+    monkeypatch.setenv("HARNESS_BROWSER_CHANNEL", "playwright")
     monkeypatch.setenv("AGENT_MAX_STEPS", "12")
     monkeypatch.setenv("AGENT_LLM_MAX_ATTEMPTS", "4")
 
     settings = Settings(_env_file=None)
 
     assert settings.deepseek_model == "custom-model"
+    assert settings.harness_browser_channel is BrowserChannel.PLAYWRIGHT
+    assert settings.harness_browser_channel.playwright_channel is None
     assert settings.agent_max_steps == 12
     assert settings.agent_llm_max_attempts == 4
 
@@ -39,6 +45,7 @@ def test_load_settings_precedence_and_permissions(tmp_path: Path, monkeypatch) -
     for name in (
         "HARNESS_WORKSPACE",
         "HARNESS_BROWSER_HEADLESS",
+        "HARNESS_BROWSER_CHANNEL",
         "DEEPSEEK_BASE_URL",
         "DEEPSEEK_MODEL",
         "AGENT_LLM_TIMEOUT_SECONDS",
@@ -60,6 +67,7 @@ agent:
   llm_retry_base_seconds: 0.5
 browser:
   headless: true
+  channel: playwright
 """.strip(),
         encoding="utf-8",
     )
@@ -90,6 +98,7 @@ tools:
 
     assert settings.harness_workspace == Path("yaml-workspace")
     assert settings.harness_browser_headless is True
+    assert settings.harness_browser_channel is BrowserChannel.PLAYWRIGHT
     assert settings.deepseek_base_url == "https://yaml.example"
     assert settings.deepseek_model == "dotenv-model"
     assert settings.agent_max_steps == 13
