@@ -20,6 +20,7 @@ project opencode.jsonc added
 conservative permission baseline added
 Windows validation script added
 CI job added for OpenCode configuration
+real Windows CI MCP handshake proven: Playwright MCP connected
 ```
 
 Still pending real-host evidence:
