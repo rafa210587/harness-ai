@@ -55,7 +55,9 @@ jobs:
             "scripts/validate-full-local.ps1",
             "scripts/validate-opencode.ps1",
             "scripts/prepare-unity-mcp.ps1",
-            "scripts/prepare-blender-mcp.ps1"
+            "scripts/prepare-blender-mcp.ps1",
+            "scripts/validate-opencode-deepseek.ps1",
+            "scripts/validate-opencode-browser.ps1"
           )
           foreach ($file in $files) {
             $tokens = $null
