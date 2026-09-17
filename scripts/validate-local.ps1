@@ -73,7 +73,7 @@ if ($Online) {
 }
 
 if ($Browser) {
-    Invoke-Step "Chromium runtime smoke" { uv run pytest -m browser_runtime }
+    Invoke-Step "Browser runtime smoke" { uv run pytest -m browser_runtime }
 }
 
 if ($Blender) {
