@@ -3,15 +3,17 @@ from pathlib import Path
 import pytest
 
 from harness.browser import PlaywrightController
+from harness.config import load_settings
 
 pytestmark = pytest.mark.browser_runtime
 
 
-async def test_chrome_launch_read_and_screenshot_without_network(tmp_path: Path) -> None:
+async def test_configured_browser_launch_read_and_screenshot_without_network(tmp_path: Path) -> None:
+    settings = load_settings()
     controller = PlaywrightController(
         tmp_path / "browser-profile",
         headless=True,
-        channel="chrome",
+        channel=settings.harness_browser_channel.playwright_channel,
     )
     screenshot = tmp_path / "browser-smoke.png"
 
