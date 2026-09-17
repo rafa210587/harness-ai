@@ -52,7 +52,7 @@
         "--browser=chrome"
       ],
       "enabled": true,
-      "timeout": 15000
+      "timeout": 60000
     },
 
     // Candidate integrations remain disabled until their real-host parity gates run.
