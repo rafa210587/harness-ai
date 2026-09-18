@@ -5,6 +5,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptRoot "lib\native.ps1")
+
 $override = @{
     mcp = @{
         unityMCP = @{
@@ -18,10 +21,11 @@ $env:OPENCODE_CONFIG_CONTENT = $override
 
 try {
     Write-Host "Checking Unity MCP connection..."
-    $mcpOutput = (& opencode mcp list 2>&1 | Out-String)
+    $mcpResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("mcp", "list")
+    $mcpOutput = $mcpResult.Output
     $mcpOutput | Write-Host
 
-    if ($LASTEXITCODE -ne 0 -or $mcpOutput -notmatch "(?i)unityMCP.*connected") {
+    if ($mcpResult.ExitCode -ne 0 -or $mcpOutput -notmatch "(?i)unityMCP.*connected") {
         throw @"
 Unity MCP is not connected.
 
@@ -52,8 +56,11 @@ Do not install packages, change project settings, save unrelated scene changes, 
 "@
 
     Write-Host "Running OpenCode -> model -> Unity MCP smoke..."
-    $response = (& opencode run --model $Model --agent unity-smoke --format json $prompt 2>&1 | Out-String)
-    if ($LASTEXITCODE -ne 0) {
+    $runResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+        "run", "--model", $Model, "--agent", "unity-smoke", "--format", "json", $prompt
+    )
+    $response = $runResult.Output
+    if ($runResult.ExitCode -ne 0) {
         $response | Write-Host
         throw "Unity MCP smoke run failed."
     }
