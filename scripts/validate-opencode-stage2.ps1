@@ -7,26 +7,42 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptRoot "lib\native.ps1")
 
-function Ensure-DeepSeekAuth {
+function Test-StoredDeepSeekCredential {
     $auth = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("auth", "list")
-    if ($auth.ExitCode -eq 0 -and $auth.Output -match "(?i)deepseek") {
-        Write-Host "[ok] DeepSeek authentication already configured."
+    if ($auth.ExitCode -ne 0) {
+        return $false
+    }
+
+    $clean = [regex]::Replace($auth.Output, "`e\[[0-9;?]*[ -/]*[@-~]", "")
+    $credentialsSection = ($clean -split "(?i)Environment", 2)[0]
+
+    return (
+        $credentialsSection -match "(?i)DeepSeek" -and
+        $credentialsSection -notmatch "(?i)\b0 credentials\b"
+    )
+}
+
+function Ensure-DeepSeekAuth {
+    if (Test-StoredDeepSeekCredential) {
+        Write-Host "[ok] DeepSeek credential is stored in OpenCode auth.json."
         return
     }
 
-    Write-Host "DeepSeek authentication not found."
-    Write-Host "Starting interactive OpenCode auth login..."
+    Write-Host "DeepSeek is available only through environment credentials or is not configured."
+    Write-Host "For migration cutover, the API key must be stored in OpenCode auth.json."
+    Write-Host "Starting interactive DeepSeek login..."
     Write-Host ""
-    & opencode auth login
+
+    & opencode auth login --provider deepseek
     if ($LASTEXITCODE -ne 0) {
-        throw "opencode auth login failed."
+        throw "opencode auth login --provider deepseek failed."
     }
 
-    $auth = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("auth", "list")
-    if ($auth.ExitCode -ne 0 -or $auth.Output -notmatch "(?i)deepseek") {
-        throw "DeepSeek authentication is still not configured after login."
+    if (-not (Test-StoredDeepSeekCredential)) {
+        throw "DeepSeek credential is still not stored in OpenCode auth.json after login."
     }
-    Write-Host "[ok] DeepSeek authentication configured."
+
+    Write-Host "[ok] DeepSeek credential stored in OpenCode auth.json."
 }
 
 function Resolve-DeepSeekModel {
@@ -92,13 +108,25 @@ Write-Host ""
 Write-Host "Selected model: $selectedModel"
 Write-Host ""
 
-& (Join-Path $scriptRoot "validate-opencode-local.ps1") `
-    -Model $selectedModel `
-    -Security `
-    -Browser
+$previousDeepSeekApiKey = $env:DEEPSEEK_API_KEY
 
-if ($LASTEXITCODE -ne 0) {
-    throw "OpenCode Stage 2 acceptance failed."
+try {
+    # Prove runtime auth comes from OpenCode credential storage, not inherited provider env vars.
+    Remove-Item Env:DEEPSEEK_API_KEY -ErrorAction SilentlyContinue
+
+    & (Join-Path $scriptRoot "validate-opencode-local.ps1") -Model $selectedModel -Security -Browser
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "OpenCode Stage 2 acceptance failed."
+    }
+}
+finally {
+    if ($null -eq $previousDeepSeekApiKey) {
+        Remove-Item Env:DEEPSEEK_API_KEY -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:DEEPSEEK_API_KEY = $previousDeepSeekApiKey
+    }
 }
 
 Write-Host ""
