@@ -126,6 +126,33 @@ Level 6: complete cross-application workflow with visual verification
 
 The core, including the Python distribution build, is validated through Level 4. Level 5 has been validated on Rafael's Windows host for DeepSeek, Chrome, Blender, Unity, agent/tool use, and the real Blender -> Unity Level 6A workflow. Level 6B visual verification/correction remains.
 
+## Active OpenCode migration security finding
+
+OpenCode permissions are not accepted as the sole deterministic secret boundary.
+
+Repository-side mitigations now implemented:
+
+```text
+task/subagents denied
+explicit .env/key read/edit denies
+credential/key patterns ignored by Git/ripgrep
+CLI/headless harness-policy plugin
+direct sensitive-path rejection
+outside-root + symlink escape rejection for direct file-tool paths
+explicit sensitive grep/glob target rejection
+explicit sensitive shell-reference rejection
+```
+
+Known limitation:
+
+```text
+arbitrary shell command approval is not equivalent to sandboxing;
+broad grep safety still depends in part on keeping secrets out of the worktree/rg search set;
+Desktop plugin hooks are not trusted until separately validated.
+```
+
+Generic-runtime cutover remains blocked until the final OpenCode path no longer needs worktree `.env` credentials and real exfiltration tests pass.
+
 ## Known cleanup that should wait for local dependency resolution
 
 - `httpx` is still declared directly but has no current direct import. Remove it during the next intentional `uv` dependency update if no concrete localhost bridge needs it; regenerate `uv.lock` with `uv`, never by hand.
