@@ -54,6 +54,13 @@ $startArgs = @{
 $process = Start-Process @startArgs
 
 $previousConfigContent = $env:OPENCODE_CONFIG_CONTENT
+$previousOpenAiApiKey = $env:OPENAI_API_KEY
+$previousSafeEnv = $env:HARNESS_SAFE_ENV
+
+$envSecretMarker = "MOCK_ENV_SECRET_" + [guid]::NewGuid().ToString("N")
+$safeEnvMarker = "MOCK_SAFE_ENV_" + [guid]::NewGuid().ToString("N")
+$env:OPENAI_API_KEY = $envSecretMarker
+$env:HARNESS_SAFE_ENV = $safeEnvMarker
 
 try {
     $healthy = $false
@@ -147,6 +154,25 @@ try {
     }
     Write-Host "[ok] OpenCode project plugin blocked sensitive read before file contents were returned."
 
+    Write-Host "Testing OpenCode shell environment secret isolation..."
+    $envResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @(
+        "run", "--model", $model, "--agent", "security-smoke",
+        "--format", "json", "--title", "harness-mock-env",
+        "MOCK_ENV_SHELL_LOOP: run the requested shell environment listing."
+    )
+    $envResult.Output | Write-Host
+
+    if ($envResult.ExitCode -ne 0 -or $envResult.Output -notmatch "MOCK_ENV_SHELL_LOOP_OK") {
+        throw "OpenCode shell environment isolation gate failed."
+    }
+    if ($envResult.Output -match [regex]::Escape($envSecretMarker)) {
+        throw "OpenCode shell environment isolation failure: synthetic provider secret was exposed."
+    }
+    if ($envResult.Output -notmatch [regex]::Escape($safeEnvMarker)) {
+        throw "OpenCode shell environment isolation failure: safe environment marker was not preserved."
+    }
+    Write-Host "[ok] OpenCode shell preserved safe env and hid provider secret."
+
     Write-Host "Testing OpenCode native skill tool..."
     $skillResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @(
         "run", "--model", $model, "--agent", "mock-runtime",
@@ -188,6 +214,7 @@ try {
     Write-Host "     provider -> opencode run"
     Write-Host "     model -> built-in read tool -> model"
     Write-Host "     project plugin -> sensitive read blocked"
+    Write-Host "     shell env -> provider secret hidden + safe env preserved"
     Write-Host "     model -> native skill tool -> model"
     Write-Host "     session -> resume"
 }
@@ -197,6 +224,20 @@ finally {
     }
     else {
         $env:OPENCODE_CONFIG_CONTENT = $previousConfigContent
+    }
+
+    if ($null -eq $previousOpenAiApiKey) {
+        Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:OPENAI_API_KEY = $previousOpenAiApiKey
+    }
+
+    if ($null -eq $previousSafeEnv) {
+        Remove-Item Env:HARNESS_SAFE_ENV -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:HARNESS_SAFE_ENV = $previousSafeEnv
     }
 
     if ($process -and -not $process.HasExited) {
