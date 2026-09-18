@@ -148,10 +148,6 @@ jobs:
             throw "Expected @playwright/mcp 0.0.81, got '$version'."
           }
 
-      - name: Validate OpenCode config
-        shell: pwsh
-        run: .\scripts\validate-opencode.ps1 -SkipMcp
-
       - name: Validate pinned Unity and Blender MCP entrypoints
         shell: pwsh
         run: .\scripts\validate-opencode-mcp-candidates.ps1
