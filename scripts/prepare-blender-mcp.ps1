@@ -14,7 +14,7 @@ if (-not $uvx) {
 }
 
 Write-Host "Installing the pinned Blender MCP addon candidate..."
-$result = Invoke-NativeCommandCapture -FilePath "uvx" -Arguments @(
+$result = Invoke-NativeCommandCapture -FilePath "uvx" -TimeoutSeconds 180 -Arguments @(
     "--from", "$Package==$Version",
     "mcp-for-blender",
     "install-addon"
