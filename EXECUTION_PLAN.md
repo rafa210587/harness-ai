@@ -2,6 +2,8 @@
 
 > Durable roadmap for taking `harness-ai` from repository implementation to a usable v1.
 >
+> **Active architecture migration:** the generic custom runtime is being replaced by an OpenCode-first stack. `OPENCODE_MIGRATION.md` is the authoritative migration sequence and deletion/parity specification until that migration is complete.
+>
 > Current factual evidence lives in `IMPLEMENTATION_STATUS.md`. Architecture decisions live in `ARCHITECTURE.md`; setup commands live in `SETUP.md`. This file defines order, ownership and exit gates without duplicating those documents.
 
 ## 1. Execution roles
@@ -373,22 +375,28 @@ If included, at least one configured image-provider path must work. Interactive 
 
 ## 6. Immediate execution sequence
 
-Current sequence:
+The OpenCode migration now takes precedence over expanding the custom runtime.
 
 ```text
-1. Coding Agent: keep remote core/CI green and avoid speculative abstractions.
-2. Me (Rafa): pull/sync/configure the real Windows host.
-3. Me + Harness: run core-only local acceptance.
-4. Me + Harness: run real DeepSeek acceptance/eval.
-5. Me + Harness: run Chromium runtime acceptance.
-6. Me + Harness: run Blender runtime acceptance.
-7. Me + Harness: run Unity runtime acceptance in a disposable project.
-8. Me + Harness: run Blender -> Unity -> visual verification Level 6 workflow.
-9. Coding Agent: fix only failures discovered by those real gates and add regression tests.
-10. Me + Coding Agent: perform final v1 acceptance.
+1. Baseline and freeze the current custom runtime.
+2. Pin and validate stable OpenCode on the real Windows host.
+3. Add committed OpenCode project configuration with conservative permissions.
+4. Benchmark official Playwright MCP against the current browser acceptance scenarios.
+5. Benchmark CoplayDev Unity MCP against the current Unity acceptance scenarios.
+6. Benchmark mature Blender MCP candidates against the current Blender scenarios.
+7. Migrate runtime skills/permissions/session ownership to OpenCode.
+8. Retarget evals and CI to the selected OpenCode/MCP stack.
+9. Re-establish Evidence Levels 1-5.
+10. Re-establish Level 6A Blender -> Unity.
+11. Complete Level 6B visual verification/correction.
+12. Delete every superseded custom runtime/integration implementation.
+13. Run residue/dependency/doc/clean-clone gates.
+14. Merge only after the final architecture has one owner per capability.
 ```
 
-If a local gate fails, the next repository change should target that concrete failure. Do not skip ahead by inventing another abstraction.
+Detailed steps, replacement criteria and destructive-cleanup gates are in `OPENCODE_MIGRATION.md`.
+
+Do not add new generic runtime features to the old AgentLoop/ToolRegistry/provider/session stack during the migration unless they are required to preserve a production-critical gate.
 
 ---
 

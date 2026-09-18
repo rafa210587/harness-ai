@@ -6,20 +6,20 @@
 
 Keep the MVP understandable by one engineer and one coding agent.
 
-Core stack:
+Target stack during the active migration:
 
 ```text
-Python 3.12 + uv
-DeepSeek provider
-single agent loop
-Tool Registry
-SQLite
-Playwright
-Blender CLI/Python
-Unity CLI/Editor scripts
+OpenCode stable runtime
+OpenCode providers / sessions / context / permissions / skills
+OpenCode built-in coding/filesystem/shell
+MCP integrations selected by acceptance tests
+Python 3.12 + uv only for retained custom gaps
+repository-specific evals / security invariants / acceptance scripts
 ```
 
-Do not turn the repository into a framework before concrete requirements require it.
+The previous custom Python runtime remains only as a parity baseline until replacement gates pass. Do not add new generic-runtime abstractions there.
+
+Before implementing any new capability, prefer OpenCode built-ins, official or well-maintained MCPs, then mature external integrations. Build custom code only for a demonstrated gap.
 
 ## 2. Layout
 

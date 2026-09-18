@@ -2,6 +2,131 @@
 
 Windows is the primary local target. CI also validates the core on Linux and Windows.
 
+## Active OpenCode migration bootstrap
+
+The migration branch uses stable OpenCode `1.18.31` and official Playwright MCP `0.0.81`.
+
+Current migration prerequisites:
+
+```text
+Node.js 20+
+npm / npx
+OpenCode 1.18.31
+Python 3.12 + uv
+Google Chrome
+```
+
+Install the pinned OpenCode version:
+
+```powershell
+npm install -g opencode-ai@1.18.31
+opencode --version
+```
+
+Expected:
+
+```text
+1.18.31
+```
+
+Validate repository configuration:
+
+```powershell
+.\scripts\validate-opencode.ps1
+```
+
+The committed `opencode.jsonc` configures official Playwright MCP `@playwright/mcp@0.0.81` with the installed Google Chrome channel.
+
+Provider authentication stays outside Git. For the DeepSeek parity baseline:
+
+```powershell
+opencode
+```
+
+Then use:
+
+```text
+/connect  -> DeepSeek
+/models   -> choose the desired DeepSeek model
+```
+
+Do not remove custom runtime code until its replacement passes the gates in `OPENCODE_MIGRATION.md`.
+
+
+## OpenCode migration local gates
+
+After checking out `migration/opencode-core`:
+
+```powershell
+git pull
+npm install -g opencode-ai@1.18.31
+uv python install 3.12
+```
+
+Validate repository/config/MCP packages:
+
+```powershell
+.\scripts\validate-opencode.ps1
+.\scripts\validate-opencode-mcp-candidates.ps1
+```
+
+Configure DeepSeek once through OpenCode:
+
+```powershell
+opencode auth login
+opencode models deepseek --refresh
+```
+
+Choose the exact `deepseek/<model-id>` printed by the model list.
+
+Run the provider + synthetic security + browser gates:
+
+```powershell
+.\scripts\validate-opencode-local.ps1 -Model "deepseek/<model-id>" -Security -Browser
+```
+
+The security gate creates only synthetic temporary secrets, checks direct read/search/shell/outside-root paths, and removes the fixtures afterward. It never uses your real API key as test data.
+
+For the current migration Stage 2 (real DeepSeek + synthetic security + browser), use one command:
+
+```powershell
+.\scripts\validate-opencode-stage2.ps1
+```
+
+Stage 2 requires DeepSeek to be stored in OpenCode's credential store (`auth.json`); environment-only `DEEPSEEK_API_KEY` is not accepted for cutover. If needed, the script starts `opencode auth login --provider deepseek` interactively. During validation it removes `DEEPSEEK_API_KEY` from the child process environment, runs file/search/shell/environment exfiltration probes, and only writes fresh `deepseek`, `security`, and `browser` evidence markers after the corresponding gates pass.
+
+For Unity, use only the disposable smoke project:
+
+```powershell
+.\scripts\prepare-unity-mcp.ps1 -ProjectPath "$env:HARNESS_UNITY_SMOKE_PROJECT"
+```
+
+Then open that project in Unity, wait for package resolution/compilation, start/configure MCP for Unity, and run:
+
+```powershell
+.\scripts\validate-opencode-unity.ps1 -Model "deepseek/<model-id>"
+```
+
+For Blender:
+
+```powershell
+.\scripts\prepare-blender-mcp.ps1
+```
+
+Then open Blender, enable **Interface: MCP for Blender**, start its MCP server from the Blender sidebar, and run:
+
+```powershell
+.\scripts\validate-opencode-blender.ps1 -Model "deepseek/<model-id>"
+```
+
+Or after both applications are prepared:
+
+```powershell
+.\scripts\validate-opencode-local.ps1 -Model "deepseek/<model-id>" -All
+```
+
+The local scripts enable Unity/Blender MCP only for the process through `OPENCODE_CONFIG_CONTENT`; they do not rewrite the committed project config.
+
 ## Requirements
 
 Required:

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Migration baseline: keep runtime upgrades explicit and testable.
+  "autoupdate": false,
+  "share": "disabled",
+
+  // Conservative migration defaults. Relax only after parity/security gates.
+  "permission": {
+    "*": "ask",
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow",
+      "*.pem": "deny",
+      "*.key": "deny"
+    },
+    "glob": "allow",
+    "grep": "allow",
+    "skill": "allow",
+    "task": "deny",
+    "external_directory": "deny",
+    "edit": {
+      "*": "ask",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "ask",
+      "*.pem": "deny",
+      "*.key": "deny"
+    },
+    "bash": {
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git branch*": "allow",
+      "git push*": "ask",
+      "git reset --hard*": "deny",
+      "git clean*": "deny",
+      "rm -rf*": "deny",
+      "Remove-Item -Recurse*": "deny"
+    }
+  },
+
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp@0.0.81",
+        "--browser=chrome"
+      ],
+      "enabled": true,
+      "timeout": 60000
+    },
+
+    // Candidate integrations remain disabled until their real-host parity gates run.
+    "unityMCP": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "--from",
+        "mcpforunityserver==10.2.0",
+        "mcp-for-unity",
+        "--transport",
+        "stdio"
+      ],
+      "enabled": false,
+      "timeout": 300000
+    },
+
+    "blenderMCP": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "--from",
+        "mcp-for-blender==2.0.0",
+        "mcp-for-blender"
+      ],
+      "environment": {
+        "BLENDER_HOST": "localhost",
+        "BLENDER_PORT": "9876",
+        "DISABLE_TELEMETRY": "true",
+        "BLENDER_MCP_SAFE_MODE": "1"
+      },
+      "enabled": false,
+      "timeout": 300000
+    }
+  }
+}

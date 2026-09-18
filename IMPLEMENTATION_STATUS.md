@@ -2,7 +2,65 @@
 
 > Factual snapshot of what exists in code, what CI has proved, and what still requires Rafael's local Windows machine.
 >
+> **Migration status:** OpenCode-first migration is active on `migration/opencode-core`. The current custom runtime remains the evidence baseline until each replacement passes parity. See `OPENCODE_MIGRATION.md`.
+>
 > `EXECUTION_PLAN.md` remains the durable roadmap. This file tracks current evidence so roadmap intent is not confused with completed validation.
+
+## OpenCode migration checkpoint
+
+Repository-side work completed on `migration/opencode-core`:
+
+```text
+baseline SHA recorded: bf46d6276e6a53ecc79300862332202fe18e89fa
+OpenCode-first ADR adopted
+migration specification committed
+OpenCode stable pinned: 1.18.31
+Playwright MCP pinned: 0.0.81
+Blender MCP pinned: 2.0.0
+Blender MCP safe mode enabled; telemetry disabled
+project opencode.jsonc added
+conservative permission baseline added
+Windows validation script added
+CI job added for OpenCode configuration
+real Windows CI MCP handshake proven: Playwright MCP connected
+smoke-agent permission precedence verified from resolved OpenCode agent output
+```
+
+Real-host evidence added:
+
+```text
+real-host OpenCode foundation + Playwright MCP connection passed
+real-host MCP package resolution: Unity 10.2.0 + Blender 2.0.0 passed
+```
+
+Real-host Stage 2 evidence:
+
+```text
+DeepSeek v4 Flash real-host gate: PASS
+direct .env read: BLOCKED
+targeted .env grep: BLOCKED
+outside-root/junction read: BLOCKED
+direct shell secret path: BLOCKED
+Playwright MCP -> Chrome: PASS
+environment-variable secret isolation: FAIL (provider secrets inherited by shell)
+```
+
+The environment leak root cause is now fixed on the migration branch: the OpenCode shell merges `process.env` first and plugin env overrides second, so secret keys must be explicitly overridden with empty values rather than deleted from the plugin env object. CI now includes a real OpenCode bash regression requiring a safe env marker to remain visible while a synthetic provider secret does not appear.
+
+Still pending real-host evidence:
+
+```text
+OpenCode 1.18.31 installed on Rafael's Windows host
+DeepSeek authenticated through OpenCode
+real opencode run
+real Playwright MCP -> Chrome interaction
+Unity MCP benchmark
+Blender MCP benchmark
+OpenCode-native runtime skill files added; real skill-load proof pending
+runtime cutover/deletion
+```
+
+The old custom runtime remains only as the parity baseline until those gates pass.
 
 ## Status meanings
 
@@ -88,6 +146,45 @@ Level 6: complete cross-application workflow with visual verification
 ```
 
 The core, including the Python distribution build, is validated through Level 4. Level 5 has been validated on Rafael's Windows host for DeepSeek, Chrome, Blender, Unity, agent/tool use, and the real Blender -> Unity Level 6A workflow. Level 6B visual verification/correction remains.
+
+## OpenCode generic-runtime replacement evidence
+
+```text
+OpenCode mock runtime replacement evidence: PASS
+- custom provider config -> opencode run
+- model -> built-in read -> model
+- model -> native OpenCode skill -> model
+- OpenCode session -> resume
+```
+
+This is sufficient CI evidence for replacement of the custom generic runtime layer, but destructive deletion remains blocked until the real DeepSeek/security/browser gates pass on Rafael's Windows host.
+
+## Active OpenCode migration security finding
+
+OpenCode permissions are not accepted as the sole deterministic secret boundary.
+
+Repository-side mitigations now implemented:
+
+```text
+task/subagents denied
+explicit .env/key read/edit denies
+credential/key patterns ignored by Git/ripgrep
+CLI/headless harness-policy plugin
+direct sensitive-path rejection
+outside-root + symlink escape rejection for direct file-tool paths
+explicit sensitive grep/glob target rejection
+explicit sensitive shell-reference rejection
+```
+
+Known limitation:
+
+```text
+arbitrary shell command approval is not equivalent to sandboxing;
+broad grep safety still depends in part on keeping secrets out of the worktree/rg search set;
+Desktop plugin hooks are not trusted until separately validated.
+```
+
+Generic-runtime cutover remains blocked until the final OpenCode path no longer needs worktree `.env` credentials and real exfiltration tests pass.
 
 ## Known cleanup that should wait for local dependency resolution
 
