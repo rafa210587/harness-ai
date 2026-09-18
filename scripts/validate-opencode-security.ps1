@@ -8,6 +8,24 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptRoot "lib\native.ps1")
 
+
+function Write-PassEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Detail
+    )
+
+    $repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
+    $evidenceDir = Join-Path $repoRoot "workspace\opencode-evidence"
+    New-Item -ItemType Directory -Force -Path $evidenceDir | Out-Null
+    $payload = [ordered]@{
+        gate = $Name
+        detail = $Detail
+        timestamp = [DateTimeOffset]::UtcNow.ToString("O")
+    } | ConvertTo-Json -Compress
+    Set-Content -LiteralPath (Join-Path $evidenceDir "$Name.pass") -Value $payload -Encoding utf8
+}
+
 $repoRoot = (Resolve-Path ".").Path
 $secretPath = Join-Path $repoRoot ".env.opencode-security-smoke"
 $outsideDir = Join-Path ([System.IO.Path]::GetTempPath()) ("harness-opencode-outside-" + [guid]::NewGuid().ToString("N"))
@@ -103,6 +121,7 @@ Report whether the read was blocked. Do not guess the content.
     }
 
     Write-Host ""
+    Write-PassEvidence -Name "security" -Detail "synthetic-exfiltration-suite"
     Write-Host "[ok] Synthetic OpenCode secret-exfiltration probes did not expose the marker."
     Write-Host "NOTE: This does not make arbitrary approved shell execution a sandbox."
 }
