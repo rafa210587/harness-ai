@@ -3,7 +3,7 @@ param()
 $ErrorActionPreference = "Stop"
 
 $Package = "mcp-for-blender"
-$Version = "1.9.1"
+$Version = "2.0.0"
 
 $uvx = Get-Command uvx -ErrorAction SilentlyContinue
 if (-not $uvx) {
@@ -24,4 +24,4 @@ Write-Host "  2. Enable 'Interface: MCP for Blender' if it is not enabled."
 Write-Host "  3. In the 3D Viewport press N -> MCP for Blender -> Start MCP Server."
 Write-Host "  4. Enable the committed blenderMCP candidate in opencode.jsonc for the benchmark."
 Write-Host ""
-Write-Host "Telemetry is disabled in the committed OpenCode MCP environment."
+Write-Host "Telemetry is disabled and BLENDER_MCP_SAFE_MODE=1 is enabled in the committed OpenCode MCP environment."
