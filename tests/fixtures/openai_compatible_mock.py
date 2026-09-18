@@ -172,7 +172,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
         def send(payload: dict[str, Any]) -> None:
-            self.wfile.write(f"data: {json.dumps(payload)}\n\n".encode("utf-8"))
+            self.wfile.write(f"data: {json.dumps(payload)}\n\n".encode())
             self.wfile.flush()
 
         if response_kind[0] == "text":
