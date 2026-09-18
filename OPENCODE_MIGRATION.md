@@ -544,7 +544,8 @@ delete all superseded Blender code
 
 Tasks:
 
-- [ ] migrate useful runtime skills to `.opencode/skills`
+- [x] migrate current browser/Blender/Unity runtime procedures to `.opencode/skills`
+- [ ] prove OpenCode advertises/loads the migrated skills in a real model run
 - [ ] remove duplicate runtime skill loader
 - [ ] define specialized OpenCode agents only where justified by evals
 - [ ] keep development-agent instructions separate from product runtime skills
@@ -633,6 +634,20 @@ Exit:
 ```text
 Level 1-4 evidence restored on new architecture
 ```
+
+Local acceptance scripts now exist for:
+
+```text
+OpenCode foundation
+pinned MCP package resolution
+DeepSeek real-provider call
+Playwright MCP -> Chrome
+Unity MCP bounded create/verify/delete
+Blender MCP bounded scene -> PNG artifact
+combined requested-gate runner
+```
+
+These scripts are syntax-checked in Windows CI. They do not count as Level 5 until executed on Rafael's real Windows host.
 
 ### M10 — Real host Level 5
 
