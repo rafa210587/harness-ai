@@ -28,7 +28,7 @@ function Test-UvxEntrypoint {
     )
 
     Write-Host "Resolving $Package -> $Command ..."
-    $result = Invoke-NativeCommandCapture -FilePath "uvx" -Arguments @(
+    $result = Invoke-NativeCommandCapture -FilePath "uvx" -TimeoutSeconds 180 -Arguments @(
         "--python", "3.12",
         "--from", $Package,
         $Command,
