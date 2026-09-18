@@ -7,6 +7,24 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptRoot "lib\native.ps1")
 
+
+function Write-PassEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Detail
+    )
+
+    $repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
+    $evidenceDir = Join-Path $repoRoot "workspace\opencode-evidence"
+    New-Item -ItemType Directory -Force -Path $evidenceDir | Out-Null
+    $payload = [ordered]@{
+        gate = $Name
+        detail = $Detail
+        timestamp = [DateTimeOffset]::UtcNow.ToString("O")
+    } | ConvertTo-Json -Compress
+    Set-Content -LiteralPath (Join-Path $evidenceDir "$Name.pass") -Value $payload -Encoding utf8
+}
+
 function Require-Command {
     param([Parameter(Mandatory = $true)][string]$Name)
     $command = Get-Command $Name -ErrorAction SilentlyContinue
@@ -76,4 +94,5 @@ if ($response -notmatch [regex]::Escape($marker)) {
     throw "DeepSeek response did not contain expected marker '$marker'."
 }
 
+Write-PassEvidence -Name "deepseek" -Detail $Model
 Write-Host "[ok] OpenCode -> DeepSeek real-provider gate passed."
