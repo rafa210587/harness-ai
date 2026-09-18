@@ -727,7 +727,16 @@ Fix applied:
 - unit test enforces function-only plugin exports;
 - mock-runtime CI now attempts a real sensitive `read` through `opencode run` and requires the plugin to block it before contents are returned.
 
-Do not mark Stage 2 complete until that integration gate is green and Rafael reruns the real security/browser stage.
+A later real-host rerun proved direct file, targeted grep, outside-root/junction, direct shell-path protection and Playwright MCP -> Chrome. It also exposed a second security gap: provider API keys inherited through `process.env` were visible to the agent shell. Root cause: OpenCode composes shell env as `{ ...process.env, ...pluginEnv }`; deleting a key from `pluginEnv` does not remove the inherited value.
+
+Fix applied:
+- sensitive provider/token variables are explicitly overridden with empty values in the `shell.env` hook;
+- Stage 2 requires DeepSeek credentials stored in OpenCode `auth.json`, not env-only auth;
+- Stage 2 temporarily removes `DEEPSEEK_API_KEY` while proving provider auth;
+- security probes now use real PowerShell `Get-ChildItem Env:` and require a safe marker to remain visible while a synthetic secret marker is absent;
+- mock-runtime CI reproduces the same bash environment listing.
+
+Do not mark Stage 2 complete until the environment isolation regression is green in CI and on Rafael's host.
 
 ### M10 — Real host Level 5
 
