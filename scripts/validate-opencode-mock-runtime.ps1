@@ -86,11 +86,22 @@ try {
                 }
                 models = @{
                     "mock-model" = @{
+                        id = "mock-model"
                         name = "Harness Mock Model"
+                        attachment = $false
+                        reasoning = $false
+                        temperature = $false
+                        tool_call = $true
+                        release_date = "2026-01-01"
                         limit = @{
                             context = 32768
                             output = 1024
                         }
+                        cost = @{
+                            input = 0
+                            output = 0
+                        }
+                        options = @{}
                     }
                 }
             }
