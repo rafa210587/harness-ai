@@ -505,6 +505,16 @@ else:
     document exact gap and keep only the missing layer
 ```
 
+Real Windows host evidence:
+
+```text
+Pinned MCP package/entrypoint resolution:
+- mcpforunityserver==10.2.0 -> mcp-for-unity: PASS
+- mcp-for-blender==2.0.0 -> mcp-for-blender: PASS
+```
+
+This proves package resolution and CLI entrypoints on Rafael's Windows host. It does not yet prove a live Unity or Blender connection.
+
 ### M3 — Unity replacement benchmark
 
 Tasks:
