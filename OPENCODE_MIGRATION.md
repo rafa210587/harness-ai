@@ -472,6 +472,19 @@ OpenCode MCP status:
 
 The validator now fails if an enabled MCP reports `failed` or `timed out`. This closes a false-green discovered in an earlier run where `opencode mcp list` returned exit code 0 despite a server timeout.
 
+Real Windows host foundation evidence:
+
+```text
+OpenCode 1.18.31: PASS
+project opencode.jsonc resolution: PASS
+Playwright MCP 0.0.81 package resolution: PASS
+Playwright MCP connection: PASS
+Unity MCP candidate listed disabled: PASS
+Blender MCP candidate listed disabled: PASS
+```
+
+This is repository/runtime foundation evidence. It does not yet prove a model-driven browser interaction.
+
 ### M2 — Browser replacement benchmark
 
 Current finding:
