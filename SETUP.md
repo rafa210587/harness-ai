@@ -93,7 +93,7 @@ For the current migration Stage 2 (real DeepSeek + synthetic security + browser)
 .\scripts\validate-opencode-stage2.ps1
 ```
 
-If DeepSeek authentication is missing, the script starts `opencode auth login` interactively. If multiple DeepSeek models are available, it lists them and asks which one to use. On success it writes local evidence markers for `deepseek`, `security`, and `browser` under `workspace/opencode-evidence/`.
+Stage 2 requires DeepSeek to be stored in OpenCode's credential store (`auth.json`); environment-only `DEEPSEEK_API_KEY` is not accepted for cutover. If needed, the script starts `opencode auth login --provider deepseek` interactively. During validation it removes `DEEPSEEK_API_KEY` from the child process environment, runs file/search/shell/environment exfiltration probes, and only writes fresh `deepseek`, `security`, and `browser` evidence markers after the corresponding gates pass.
 
 For Unity, use only the disposable smoke project:
 
