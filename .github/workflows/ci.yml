@@ -66,7 +66,8 @@ jobs:
             "scripts/validate-opencode-unity.ps1",
             "scripts/validate-opencode-blender.ps1",
             "scripts/validate-opencode-local.ps1",
-            "scripts/validate-opencode-security.ps1"
+            "scripts/validate-opencode-security.ps1",
+            "scripts/lib/native.ps1"
           )
           foreach ($file in $files) {
             $tokens = $null
@@ -115,6 +116,22 @@ jobs:
       - name: Install pinned OpenCode
         shell: pwsh
         run: npm install -g opencode-ai@1.18.31
+
+      - name: Regression test native stderr capture
+        shell: pwsh
+        run: |
+          . .\scripts\lib\native.ps1
+          $result = Invoke-NativeCommandCapture -FilePath "node" -Arguments @(
+            "-e",
+            "console.error('progress-on-stderr'); console.log('ok-on-stdout'); process.exit(0)"
+          )
+          $result.Output | Write-Host
+          if ($result.ExitCode -ne 0) {
+            throw "Expected exit code 0, got $($result.ExitCode)."
+          }
+          if ($result.Output -notmatch "progress-on-stderr" -or $result.Output -notmatch "ok-on-stdout") {
+            throw "Native stdout/stderr capture regression."
+          }
 
       - name: Test OpenCode security policy plugin
         shell: pwsh
