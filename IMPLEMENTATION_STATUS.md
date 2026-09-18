@@ -33,6 +33,16 @@ real-host OpenCode foundation + Playwright MCP connection passed
 real-host MCP package resolution: Unity 10.2.0 + Blender 2.0.0 passed
 ```
 
+Real-host Stage 2 evidence:
+
+```text
+DeepSeek v4 Flash real-host gate: PASS
+security direct-read probe: FAIL (project policy plugin was not loaded)
+browser gate: not reached
+```
+
+The policy-plugin loader root cause is fixed on the migration branch; rerun is pending CI integration proof.
+
 Still pending real-host evidence:
 
 ```text
