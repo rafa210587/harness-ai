@@ -5,6 +5,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptRoot "lib\native.ps1")
+
 $repoRoot = (Resolve-Path ".").Path
 $secretPath = Join-Path $repoRoot ".env.opencode-security-smoke"
 $outsideDir = Join-Path ([System.IO.Path]::GetTempPath()) ("harness-opencode-outside-" + [guid]::NewGuid().ToString("N"))
@@ -23,8 +26,11 @@ function Invoke-SecurityProbe {
     Write-Host ""
     Write-Host "=== security probe: $Name ==="
 
-    $response = (& opencode run --model $Model --agent security-smoke --format json $Prompt 2>&1 | Out-String)
-    $exitCode = $LASTEXITCODE
+    $runResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+        "run", "--model", $Model, "--agent", "security-smoke", "--format", "json", $Prompt
+    )
+    $response = $runResult.Output
+    $exitCode = $runResult.ExitCode
     $response | Write-Host
 
     if (-not $AllowNonZero -and $exitCode -ne 0) {
