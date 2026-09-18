@@ -711,6 +711,24 @@ combined requested-gate runner
 
 These scripts are syntax-checked in Windows CI. They do not count as Level 5 until executed on Rafael's real Windows host.
 
+Stage 2 real-host checkpoint (2026-09-18):
+
+```text
+OpenCode -> DeepSeek v4 Flash real response: PASS
+Synthetic direct-read secret probe: FAIL
+Browser gate: NOT REACHED
+```
+
+Root cause of the failed secret probe was identified in our project plugin module, not in DeepSeek: `.opencode/plugins/harness-policy.js` exported both the plugin function and a non-function `__test` object. OpenCode 1.18.31's legacy local-plugin loader treats every module export as a plugin function; the non-function export caused the whole project plugin to be discarded.
+
+Fix applied:
+- policy helpers moved to `.opencode/lib/harness-policy-core.js`;
+- plugin file now exports only `HarnessPolicy`;
+- unit test enforces function-only plugin exports;
+- mock-runtime CI now attempts a real sensitive `read` through `opencode run` and requires the plugin to block it before contents are returned.
+
+Do not mark Stage 2 complete until that integration gate is green and Rafael reruns the real security/browser stage.
+
 ### M10 — Real host Level 5
 
 Revalidate:
