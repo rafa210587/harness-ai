@@ -37,11 +37,15 @@ Real-host Stage 2 evidence:
 
 ```text
 DeepSeek v4 Flash real-host gate: PASS
-security direct-read probe: FAIL (project policy plugin was not loaded)
-browser gate: not reached
+direct .env read: BLOCKED
+targeted .env grep: BLOCKED
+outside-root/junction read: BLOCKED
+direct shell secret path: BLOCKED
+Playwright MCP -> Chrome: PASS
+environment-variable secret isolation: FAIL (provider secrets inherited by shell)
 ```
 
-The policy-plugin loader root cause is fixed on the migration branch; rerun is pending CI integration proof.
+The environment leak root cause is now fixed on the migration branch: the OpenCode shell merges `process.env` first and plugin env overrides second, so secret keys must be explicitly overridden with empty values rather than deleted from the plugin env object. CI now includes a real OpenCode bash regression requiring a safe env marker to remain visible while a synthetic provider secret does not appear.
 
 Still pending real-host evidence:
 
