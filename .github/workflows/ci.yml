@@ -111,6 +111,10 @@ jobs:
         shell: pwsh
         run: npm install -g opencode-ai@1.18.31
 
+      - name: Test OpenCode security policy plugin
+        shell: pwsh
+        run: node --test tests/opencode-policy.test.mjs
+
       - name: Verify pinned Playwright MCP package exists
         shell: pwsh
         run: |
