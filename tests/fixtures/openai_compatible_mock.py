@@ -135,6 +135,19 @@ class Handler(BaseHTTPRequestHandler):
                         "arguments": json.dumps({"filePath": self.server.secret_path}),
                     },
                 )
+        elif "MOCK_ENV_SHELL_LOOP" in user_text:
+            if has_tool_result(messages):
+                response_kind = ("text", "MOCK_ENV_SHELL_LOOP_OK")
+            else:
+                response_kind = (
+                    "tool",
+                    {
+                        "name": "bash",
+                        "arguments": json.dumps(
+                            {"command": "Get-ChildItem Env: | Sort-Object Name"}
+                        ),
+                    },
+                )
         elif "MOCK_READ_LOOP" in user_text:
             if has_tool_result(messages):
                 response_kind = ("text", "MOCK_READ_LOOP_OK")
