@@ -19,6 +19,7 @@
     "glob": "allow",
     "grep": "allow",
     "skill": "allow",
+    "task": "deny",
     "external_directory": "deny",
     "edit": {
       "*": "ask",
