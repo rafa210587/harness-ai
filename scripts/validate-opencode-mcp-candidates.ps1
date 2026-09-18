@@ -2,6 +2,9 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptRoot "lib\native.ps1")
+
 $UnityPackage = "mcpforunityserver==10.2.0"
 $UnityCommand = "mcp-for-unity"
 $BlenderPackage = "mcp-for-blender==2.0.0"
@@ -25,15 +28,19 @@ function Test-UvxEntrypoint {
     )
 
     Write-Host "Resolving $Package -> $Command ..."
-    $output = (& uvx --python 3.12 --from $Package $Command --help 2>&1 | Out-String)
-    $exitCode = $LASTEXITCODE
+    $result = Invoke-NativeCommandCapture -FilePath "uvx" -Arguments @(
+        "--python", "3.12",
+        "--from", $Package,
+        $Command,
+        "--help"
+    )
 
-    if ($exitCode -ne 0) {
-        $output | Write-Host
+    if ($result.ExitCode -ne 0) {
+        $result.Output | Write-Host
         throw "Failed to resolve/run '$Command' from '$Package'."
     }
 
-    if ([string]::IsNullOrWhiteSpace($output)) {
+    if ([string]::IsNullOrWhiteSpace($result.Output)) {
         throw "'$Command --help' returned no output."
     }
 
