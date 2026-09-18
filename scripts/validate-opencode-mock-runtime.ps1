@@ -101,7 +101,7 @@ try {
     $model = "harnessmock/mock-model"
 
     Write-Host "Testing OpenCode provider + built-in read tool loop..."
-    $readResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+    $readResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @(
         "run", "--model", $model, "--agent", "mock-runtime",
         "--format", "json", "--title", "harness-mock-read",
         "MOCK_READ_LOOP: use the read tool when requested."
@@ -112,7 +112,7 @@ try {
     }
 
     Write-Host "Testing OpenCode native skill tool..."
-    $skillResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+    $skillResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @(
         "run", "--model", $model, "--agent", "mock-runtime",
         "--format", "json", "--title", "harness-mock-skill",
         "MOCK_SKILL_LOOP: load the browser-research skill when requested."
@@ -130,7 +130,7 @@ try {
     Write-Host "[ok] captured session $sessionId"
 
     Write-Host "Testing OpenCode session resume..."
-    $continueResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+    $continueResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @(
         "run", "--session", $sessionId, "--model", $model,
         "--agent", "mock-runtime", "--format", "json",
         "MOCK_CONTINUE_OK"
@@ -140,7 +140,7 @@ try {
         throw "OpenCode session-resume gate failed."
     }
 
-    $deleteResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+    $deleteResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 30 -Arguments @(
         "session", "delete", $sessionId
     )
     if ($deleteResult.ExitCode -ne 0) {
