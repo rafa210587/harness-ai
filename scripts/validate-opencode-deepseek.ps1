@@ -43,14 +43,22 @@ if ($authResult.ExitCode -ne 0) {
 }
 $authOutput | Write-Host
 
-if ($authOutput -notmatch "(?i)deepseek") {
+$cleanAuthOutput = [regex]::Replace($authOutput, "`e\[[0-9;?]*[ -/]*[@-~]", "")
+$credentialsSection = ($cleanAuthOutput -split "(?i)Environment", 2)[0]
+
+if (
+    $credentialsSection -notmatch "(?i)DeepSeek" -or
+    $credentialsSection -match "(?i)\b0 credentials\b"
+) {
     throw @"
-DeepSeek is not authenticated in OpenCode.
+DeepSeek is not stored in OpenCode auth.json.
+
+Environment-only DEEPSEEK_API_KEY is not accepted for migration cutover.
 
 Run:
-  opencode auth login
+  opencode auth login --provider deepseek
 
-Select DeepSeek and enter the API key, then run this script again.
+Enter the DeepSeek API key so OpenCode stores it outside the repository, then run this script again.
 "@
 }
 
