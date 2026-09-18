@@ -79,11 +79,13 @@ opencode models deepseek --refresh
 
 Choose the exact `deepseek/<model-id>` printed by the model list.
 
-Run the provider + browser gates:
+Run the provider + synthetic security + browser gates:
 
 ```powershell
-.\scripts\validate-opencode-local.ps1 -Model "deepseek/<model-id>" -Browser
+.\scripts\validate-opencode-local.ps1 -Model "deepseek/<model-id>" -Security -Browser
 ```
+
+The security gate creates only synthetic temporary secrets, checks direct read/search/shell/outside-root paths, and removes the fixtures afterward. It never uses your real API key as test data.
 
 For Unity, use only the disposable smoke project:
 
