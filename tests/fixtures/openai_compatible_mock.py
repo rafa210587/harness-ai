@@ -9,7 +9,11 @@ from pathlib import Path
 from typing import Any
 
 
-def chunk(model: str, delta: dict[str, Any], finish_reason: str | None = None) -> dict[str, Any]:
+def chunk(
+    model: str,
+    delta: dict[str, Any],
+    finish_reason: str | None = None,
+) -> dict[str, Any]:
     return {
         "id": "chatcmpl-harness-mock",
         "object": "chat.completion.chunk",
@@ -19,7 +23,11 @@ def chunk(model: str, delta: dict[str, Any], finish_reason: str | None = None) -
     }
 
 
-def completion(model: str, message: dict[str, Any], finish_reason: str = "stop") -> dict[str, Any]:
+def completion(
+    model: str,
+    message: dict[str, Any],
+    finish_reason: str = "stop",
+) -> dict[str, Any]:
     return {
         "id": "chatcmpl-harness-mock",
         "object": "chat.completion",
@@ -74,15 +82,20 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True})
             return
         if self.path == "/v1/models":
-            self._json(200, {
-                "object": "list",
-                "data": [{
-                    "id": "mock-model",
-                    "object": "model",
-                    "created": int(time.time()),
-                    "owned_by": "harness-ai",
-                }],
-            })
+            self._json(
+                200,
+                {
+                    "object": "list",
+                    "data": [
+                        {
+                            "id": "mock-model",
+                            "object": "model",
+                            "created": int(time.time()),
+                            "owned_by": "harness-ai",
+                        }
+                    ],
+                },
+            )
             return
         self._json(404, {"error": {"message": "not found"}})
 
@@ -104,39 +117,52 @@ class Handler(BaseHTTPRequestHandler):
             if has_tool_result(messages):
                 response_kind = ("text", "MOCK_SKILL_LOOP_OK")
             else:
-                response_kind = ("tool", {
-                    "name": "skill",
-                    "arguments": json.dumps({"name": "browser-research"}),
-                })
+                response_kind = (
+                    "tool",
+                    {
+                        "name": "skill",
+                        "arguments": json.dumps({"name": "browser-research"}),
+                    },
+                )
         elif "MOCK_READ_LOOP" in user_text:
             if has_tool_result(messages):
                 response_kind = ("text", "MOCK_READ_LOOP_OK")
             else:
-                response_kind = ("tool", {
-                    "name": "read",
-                    "arguments": json.dumps({"filePath": self.server.read_path}),
-                })
+                response_kind = (
+                    "tool",
+                    {
+                        "name": "read",
+                        "arguments": json.dumps({"filePath": self.server.read_path}),
+                    },
+                )
         else:
             response_kind = ("text", "MOCK_TEXT_OK")
 
         if not stream:
             if response_kind[0] == "text":
-                self._json(200, completion(model, {"role": "assistant", "content": response_kind[1]}))
+                self._json(
+                    200, completion(model, {"role": "assistant", "content": response_kind[1]})
+                )
             else:
                 spec = response_kind[1]
-                self._json(200, completion(
-                    model,
-                    {
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [{
-                            "id": "call_harness_mock",
-                            "type": "function",
-                            "function": spec,
-                        }],
-                    },
-                    finish_reason="tool_calls",
-                ))
+                self._json(
+                    200,
+                    completion(
+                        model,
+                        {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "call_harness_mock",
+                                    "type": "function",
+                                    "function": spec,
+                                }
+                            ],
+                        },
+                        finish_reason="tool_calls",
+                    ),
+                )
             return
 
         self.send_response(200)
@@ -154,18 +180,25 @@ class Handler(BaseHTTPRequestHandler):
             send(chunk(model, {}, finish_reason="stop"))
         else:
             spec = response_kind[1]
-            send(chunk(model, {
-                "role": "assistant",
-                "tool_calls": [{
-                    "index": 0,
-                    "id": "call_harness_mock",
-                    "type": "function",
-                    "function": {
-                        "name": spec["name"],
-                        "arguments": spec["arguments"],
+            send(
+                chunk(
+                    model,
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "index": 0,
+                                "id": "call_harness_mock",
+                                "type": "function",
+                                "function": {
+                                    "name": spec["name"],
+                                    "arguments": spec["arguments"],
+                                },
+                            }
+                        ],
                     },
-                }],
-            }))
+                )
+            )
             send(chunk(model, {}, finish_reason="tool_calls"))
 
         self.wfile.write(b"data: [DONE]\n\n")
