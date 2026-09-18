@@ -4,6 +4,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptRoot "lib\native.ps1")
+
 function Require-Command {
     param([Parameter(Mandatory = $true)][string]$Name)
     $command = Get-Command $Name -ErrorAction SilentlyContinue
@@ -15,8 +18,9 @@ function Require-Command {
 Require-Command "opencode"
 
 Write-Host "Checking OpenCode DeepSeek authentication..."
-$authOutput = (& opencode auth list 2>&1 | Out-String)
-if ($LASTEXITCODE -ne 0) {
+$authResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("auth", "list")
+$authOutput = $authResult.Output
+if ($authResult.ExitCode -ne 0) {
     throw "opencode auth list failed."
 }
 $authOutput | Write-Host
@@ -33,8 +37,9 @@ Select DeepSeek and enter the API key, then run this script again.
 }
 
 Write-Host "Refreshing/listing DeepSeek models..."
-$modelOutput = (& opencode models deepseek --refresh 2>&1 | Out-String)
-if ($LASTEXITCODE -ne 0) {
+$modelResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("models", "deepseek", "--refresh")
+$modelOutput = $modelResult.Output
+if ($modelResult.ExitCode -ne 0) {
     throw "opencode models deepseek --refresh failed."
 }
 $modelOutput | Write-Host
@@ -56,8 +61,11 @@ $marker = "OPENCODE_DEEPSEEK_OK"
 $prompt = "Reply with exactly: $marker. Do not call any tool."
 
 Write-Host "Running real OpenCode -> DeepSeek request with $Model ..."
-$response = (& opencode run --model $Model --format json $prompt 2>&1 | Out-String)
-if ($LASTEXITCODE -ne 0) {
+$runResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+    "run", "--model", $Model, "--format", "json", $prompt
+)
+$response = $runResult.Output
+if ($runResult.ExitCode -ne 0) {
     $response | Write-Host
     throw "opencode run failed."
 }
