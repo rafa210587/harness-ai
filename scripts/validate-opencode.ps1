@@ -28,7 +28,7 @@ Require-Command "node"
 Require-Command "npm"
 Require-Command "npx"
 
-$openCodeVersionResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("--version")
+$openCodeVersionResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 30 -Arguments @("--version")
 if ($openCodeVersionResult.ExitCode -ne 0) {
     throw "opencode --version failed."
 }
@@ -39,7 +39,7 @@ if ($openCodeVersion -notmatch [regex]::Escape($ExpectedOpenCodeVersion)) {
 }
 Write-Host "[ok] OpenCode version $ExpectedOpenCodeVersion"
 
-$nodeVersionResult = Invoke-NativeCommandCapture -FilePath "node" -Arguments @("--version")
+$nodeVersionResult = Invoke-NativeCommandCapture -FilePath "node" -TimeoutSeconds 30 -Arguments @("--version")
 if ($nodeVersionResult.ExitCode -ne 0) {
     throw "node --version failed."
 }
@@ -52,7 +52,7 @@ if ($nodeMajor -lt 20) {
 Write-Host "[ok] Node $nodeVersion"
 
 Write-Host "Resolving committed OpenCode configuration..."
-$debugConfigResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("debug", "config")
+$debugConfigResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 90 -Arguments @("debug", "config")
 $debugConfigResult.Output | Write-Host
 if ($debugConfigResult.ExitCode -ne 0) {
     throw "opencode debug config failed."
@@ -61,7 +61,7 @@ Write-Host "[ok] OpenCode project configuration resolves"
 
 if (-not $SkipMcp) {
     Write-Host "Checking pinned Playwright MCP package..."
-    $mcpPackageResult = Invoke-NativeCommandCapture -FilePath "npm" -Arguments @(
+    $mcpPackageResult = Invoke-NativeCommandCapture -FilePath "npm" -TimeoutSeconds 60 -Arguments @(
         "view", "@playwright/mcp@$ExpectedPlaywrightMcpVersion", "version"
     )
     $mcpPackageVersion = $mcpPackageResult.Output.Trim()
@@ -71,7 +71,7 @@ if (-not $SkipMcp) {
     Write-Host "[ok] @playwright/mcp@$ExpectedPlaywrightMcpVersion resolves"
 
     Write-Host "Checking OpenCode MCP registration..."
-    $mcpResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("mcp", "list")
+    $mcpResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 90 -Arguments @("mcp", "list")
     $mcpOutput = $mcpResult.Output
     $mcpOutput | Write-Host
 
