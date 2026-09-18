@@ -6,6 +6,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptRoot "lib\native.ps1")
+
 $marker = "BROWSER_SMOKE_OK"
 $prompt = @"
 Use the Playwright MCP to navigate to $Url.
@@ -18,16 +21,20 @@ HEADING=<observed main heading>
 "@
 
 Write-Host "Checking configured MCP status..."
-$mcpOutput = (& opencode mcp list 2>&1 | Out-String)
+$mcpResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("mcp", "list")
+$mcpOutput = $mcpResult.Output
 $mcpOutput | Write-Host
 
-if ($LASTEXITCODE -ne 0 -or $mcpOutput -notmatch "(?i)playwright.*connected") {
+if ($mcpResult.ExitCode -ne 0 -or $mcpOutput -notmatch "(?i)playwright.*connected") {
     throw "Playwright MCP is not connected."
 }
 
 Write-Host "Running isolated OpenCode -> DeepSeek -> Playwright MCP smoke..."
-$response = (& opencode run --model $Model --agent browser-smoke --format json $prompt 2>&1 | Out-String)
-if ($LASTEXITCODE -ne 0) {
+$runResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+    "run", "--model", $Model, "--agent", "browser-smoke", "--format", "json", $prompt
+)
+$response = $runResult.Output
+if ($runResult.ExitCode -ne 0) {
     $response | Write-Host
     throw "Browser smoke run failed."
 }
