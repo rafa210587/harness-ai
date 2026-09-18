@@ -163,11 +163,23 @@ jobs:
       - name: Validate OpenCode smoke agents are discovered
         shell: pwsh
         run: |
-          $agents = (opencode agent list 2>&1 | Out-String)
-          $agents | Write-Host
-          foreach ($name in @("browser-smoke", "unity-smoke", "blender-smoke", "security-smoke", "mock-runtime")) {
-            if ($agents -notmatch [regex]::Escape($name)) {
-              throw "OpenCode did not discover agent '$name'."
+          $previous = $env:OPENCODE_CONFIG_CONTENT
+          $env:OPENCODE_CONFIG_CONTENT = '{"mcp":{"playwright":{"enabled":false},"unityMCP":{"enabled":false},"blenderMCP":{"enabled":false}}}'
+          try {
+            $agents = (opencode agent list 2>&1 | Out-String)
+            $agents | Write-Host
+            foreach ($name in @("browser-smoke", "unity-smoke", "blender-smoke", "security-smoke", "mock-runtime")) {
+              if ($agents -notmatch [regex]::Escape($name)) {
+                throw "OpenCode did not discover agent '$name'."
+              }
+            }
+          }
+          finally {
+            if ($null -eq $previous) {
+              Remove-Item Env:OPENCODE_CONFIG_CONTENT -ErrorAction SilentlyContinue
+            }
+            else {
+              $env:OPENCODE_CONFIG_CONTENT = $previous
             }
           }
 
