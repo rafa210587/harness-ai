@@ -21,7 +21,7 @@ HEADING=<observed main heading>
 "@
 
 Write-Host "Checking configured MCP status..."
-$mcpResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("mcp", "list")
+$mcpResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 90 -Arguments @("mcp", "list")
 $mcpOutput = $mcpResult.Output
 $mcpOutput | Write-Host
 
@@ -30,7 +30,7 @@ if ($mcpResult.ExitCode -ne 0 -or $mcpOutput -notmatch "(?i)playwright.*connecte
 }
 
 Write-Host "Running isolated OpenCode -> DeepSeek -> Playwright MCP smoke..."
-$runResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+$runResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 180 -Arguments @(
     "run", "--model", $Model, "--agent", "browser-smoke", "--format", "json", $prompt
 )
 $response = $runResult.Output
