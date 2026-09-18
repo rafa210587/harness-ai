@@ -862,6 +862,125 @@ replacement validated
 
 Do not keep fallback implementations.
 
+## Generic runtime cutover manifest
+
+This is the exact deletion/retention boundary for the first destructive cutover.
+
+### Delete as generic-runtime duplication
+
+```text
+src/harness/runtime/
+src/harness/llm/
+
+src/harness/tools/base.py
+src/harness/tools/registry.py
+src/harness/tools/filesystem.py
+src/harness/tools/shell.py
+src/harness/tools/skills.py
+
+src/harness/storage/
+
+skills/browser-research/
+skills/create-blender-prop/
+skills/import-asset-to-unity/
+skills/README.md
+
+config/models.yaml
+config/models.example.yaml
+config/permissions.yaml
+config/permissions.example.yaml
+```
+
+Delete or rewrite the corresponding legacy tests:
+
+```text
+tests/integration/test_agent_loop.py
+tests/integration/test_sqlite_store.py
+
+tests/unit/test_context.py
+tests/unit/test_deepseek_provider.py
+tests/unit/test_llm_instructions.py
+tests/unit/test_llm_retry.py
+tests/unit/test_runtime_factory.py
+tests/unit/test_runtime_hooks.py
+tests/unit/test_runtime_skills.py
+tests/unit/test_filesystem_tools.py
+tests/unit/test_shell_tool.py
+tests/unit/test_tool_registry.py
+tests/unit/test_verification_loop.py
+```
+
+### Rewrite, not blindly delete
+
+```text
+src/harness/cli.py
+src/harness/config.py
+src/harness/diagnostics.py
+src/harness/evals.py
+
+scripts/validate-local.ps1
+scripts/validate-full-local.ps1
+scripts/validate-level6a.ps1
+```
+
+Their final responsibility must become OpenCode/MCP acceptance and repository-specific diagnostics, not a second runtime.
+
+### Retain until each external replacement wins its real-host benchmark
+
+```text
+src/harness/browser/
+src/harness/tools/browser.py
+tests/unit/test_browser_security.py
+tests/unit/test_browser_tools.py
+tests/integration/test_browser_runtime_real.py
+
+src/harness/unity/
+src/harness/tools/unity.py
+tests/integration/test_unity_real.py
+
+src/harness/blender/
+src/harness/tools/blender.py
+tests/integration/test_blender_real.py
+```
+
+The controller/tool pair for each application is deleted only after its selected MCP reproduces the existing real-host scenario with equal or better security/reliability.
+
+### Re-evaluate separately
+
+```text
+src/harness/images/
+src/harness/vision/
+src/harness/tools/image.py
+src/harness/tools/vision.py
+src/harness/security.py
+src/harness/process.py
+tests/unit/test_image_vision_tools.py
+tests/unit/test_visual_verifier.py
+tests/unit/test_tool_risk_invariants.py
+```
+
+These are product capabilities/helpers, not automatically generic runtime duplication.
+
+### Cutover trigger
+
+The generic-runtime deletion above is allowed when all of these are green:
+
+```text
+OpenCode mock provider/runtime CI:
+- provider -> opencode run
+- built-in read tool loop
+- native skill load
+- session resume
+
+Rafael real host:
+- OpenCode project foundation
+- DeepSeek real response
+- synthetic security/exfiltration probes
+- Playwright MCP -> installed Chrome
+```
+
+Unity/Blender custom code may remain temporarily after that first generic-runtime cutover until their own real MCP gates pass.
+
 ## 13. Definition of done
 
 The migration is complete when:
