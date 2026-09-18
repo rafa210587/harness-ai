@@ -2,6 +2,9 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptRoot "lib\native.ps1")
+
 $Package = "mcp-for-blender"
 $Version = "2.0.0"
 
@@ -11,8 +14,13 @@ if (-not $uvx) {
 }
 
 Write-Host "Installing the pinned Blender MCP addon candidate..."
-& uvx --from "$Package==$Version" mcp-for-blender install-addon
-if ($LASTEXITCODE -ne 0) {
+$result = Invoke-NativeCommandCapture -FilePath "uvx" -Arguments @(
+    "--from", "$Package==$Version",
+    "mcp-for-blender",
+    "install-addon"
+)
+$result.Output | Write-Host
+if ($result.ExitCode -ne 0) {
     throw "Pinned Blender MCP addon installation failed."
 }
 
