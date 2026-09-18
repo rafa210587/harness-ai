@@ -4,6 +4,7 @@ param(
     [switch]$Browser,
     [switch]$Unity,
     [switch]$Blender,
+    [switch]$Security,
     [switch]$All
 )
 
@@ -20,6 +21,11 @@ if ($LASTEXITCODE -ne 0) { throw "MCP candidate package gate failed." }
 
 & .\scripts\validate-opencode-deepseek.ps1 -Model $Model
 if ($LASTEXITCODE -ne 0) { throw "OpenCode DeepSeek gate failed." }
+
+if ($All -or $Security) {
+    & .\scripts\validate-opencode-security.ps1 -Model $Model
+    if ($LASTEXITCODE -ne 0) { throw "OpenCode security gate failed." }
+}
 
 if ($All -or $Browser) {
     & .\scripts\validate-opencode-browser.ps1 -Model $Model
