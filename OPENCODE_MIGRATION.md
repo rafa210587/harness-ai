@@ -961,6 +961,30 @@ tests/unit/test_tool_risk_invariants.py
 
 These are product capabilities/helpers, not automatically generic runtime duplication.
 
+### Dependency cutover plan
+
+After the first generic-runtime deletion:
+
+```text
+remove:
+- aiosqlite      # custom session/event/approval persistence
+- openai         # custom DeepSeek provider
+- httpx          # no retained direct consumer expected
+```
+
+Do not remove yet:
+
+```text
+playwright         # until Playwright MCP wins the real browser benchmark
+pydantic           # retained eval/domain models
+pydantic-settings  # until config rewrite
+python-dotenv      # until project-local legacy .env path is removed
+pyyaml             # until config/eval rewrite
+rich / typer       # until CLI rewrite
+```
+
+After each application MCP wins, repeat dependency pruning. No dependency is retained merely for historical compatibility.
+
 ### Cutover trigger
 
 The generic-runtime deletion above is allowed when all of these are green:
