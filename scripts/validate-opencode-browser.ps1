@@ -9,6 +9,24 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptRoot "lib\native.ps1")
 
+
+function Write-PassEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Detail
+    )
+
+    $repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
+    $evidenceDir = Join-Path $repoRoot "workspace\opencode-evidence"
+    New-Item -ItemType Directory -Force -Path $evidenceDir | Out-Null
+    $payload = [ordered]@{
+        gate = $Name
+        detail = $Detail
+        timestamp = [DateTimeOffset]::UtcNow.ToString("O")
+    } | ConvertTo-Json -Compress
+    Set-Content -LiteralPath (Join-Path $evidenceDir "$Name.pass") -Value $payload -Encoding utf8
+}
+
 $marker = "BROWSER_SMOKE_OK"
 $prompt = @"
 Use the Playwright MCP to navigate to $Url.
@@ -49,4 +67,5 @@ if ($response -notmatch "(?i)example domain") {
     throw "Browser smoke did not observe the expected Example Domain content."
 }
 
+Write-PassEvidence -Name "browser" -Detail $Url
 Write-Host "[ok] OpenCode -> model -> Playwright MCP -> Chrome gate passed."
