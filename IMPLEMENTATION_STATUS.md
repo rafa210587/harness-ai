@@ -16,6 +16,8 @@ OpenCode-first ADR adopted
 migration specification committed
 OpenCode stable pinned: 1.18.31
 Playwright MCP pinned: 0.0.81
+Blender MCP pinned: 2.0.0
+Blender MCP safe mode enabled; telemetry disabled
 project opencode.jsonc added
 conservative permission baseline added
 Windows validation script added
