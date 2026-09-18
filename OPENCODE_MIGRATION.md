@@ -556,6 +556,16 @@ Exit:
 OpenCode is the only runtime skill loader
 ```
 
+Smoke-agent permission ordering was inspected from OpenCode's resolved agent output in Windows CI:
+
+```text
+browser-smoke:  final * deny -> playwright_* allow
+unity-smoke:    final * deny -> unityMCP_* allow
+blender-smoke:  final * deny -> blenderMCP_* allow
+```
+
+This proves the agent-local restrictions are appended after inherited/global permissions and therefore take precedence under OpenCode's last-match permission model.
+
 ### M6 — Permissions and security parity
 
 Tasks:
