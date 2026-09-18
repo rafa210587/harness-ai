@@ -4,14 +4,20 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 
-import { HarnessPolicy, __test } from "../.opencode/plugins/harness-policy.js"
+import { HarnessPolicy } from "../.opencode/plugins/harness-policy.js"
+import {
+  assertSafeBash,
+  assertSafePath,
+  assertSafeSearch,
+  isSensitive,
+} from "../.opencode/lib/harness-policy-core.js"
 
 test("sensitive path detection blocks secrets but allows env template", () => {
-  assert.equal(__test.isSensitive("C:/repo/.env"), true)
-  assert.equal(__test.isSensitive("C:/repo/.env.local"), true)
-  assert.equal(__test.isSensitive("C:/repo/private.pem"), true)
-  assert.equal(__test.isSensitive("C:/repo/id_ed25519"), true)
-  assert.equal(__test.isSensitive("C:/repo/.env.example"), false)
+  assert.equal(isSensitive("C:/repo/.env"), true)
+  assert.equal(isSensitive("C:/repo/.env.local"), true)
+  assert.equal(isSensitive("C:/repo/private.pem"), true)
+  assert.equal(isSensitive("C:/repo/id_ed25519"), true)
+  assert.equal(isSensitive("C:/repo/.env.example"), false)
 })
 
 test("direct file tools cannot escape project root", () => {
@@ -19,7 +25,7 @@ test("direct file tools cannot escape project root", () => {
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-outside-"))
 
   assert.throws(
-    () => __test.assertSafePath("read", path.join(outside, "file.txt"), root),
+    () => assertSafePath("read", path.join(outside, "file.txt"), root),
     /outside project root/,
   )
 })
@@ -31,32 +37,32 @@ test("symlink escape is rejected", { skip: process.platform === "win32" }, () =>
   fs.symlinkSync(outside, link, "dir")
 
   assert.throws(
-    () => __test.assertSafePath("read", path.join(link, "secret.txt"), root),
+    () => assertSafePath("read", path.join(link, "secret.txt"), root),
     /outside project root/,
   )
 })
 
 test("grep and glob cannot explicitly target secret patterns", () => {
   assert.throws(
-    () => __test.assertSafeSearch("grep", { pattern: "TOKEN", include: ".env*" }),
+    () => assertSafeSearch("grep", { pattern: "TOKEN", include: ".env*" }),
     /sensitive file patterns/,
   )
   assert.throws(
-    () => __test.assertSafeSearch("glob", { pattern: "**/*.pem" }),
+    () => assertSafeSearch("glob", { pattern: "**/*.pem" }),
     /sensitive file patterns/,
   )
   assert.doesNotThrow(() =>
-    __test.assertSafeSearch("grep", { pattern: "class Foo", include: "*.py" }),
+    assertSafeSearch("grep", { pattern: "class Foo", include: "*.py" }),
   )
 })
 
 test("shell commands explicitly referencing secret paths are blocked", () => {
   assert.throws(
-    () => __test.assertSafeBash("bash", { command: "cat .env" }),
+    () => assertSafeBash("bash", { command: "cat .env" }),
     /sensitive path/,
   )
   assert.doesNotThrow(() =>
-    __test.assertSafeBash("bash", { command: "git status --short" }),
+    assertSafeBash("bash", { command: "git status --short" }),
   )
 })
 
