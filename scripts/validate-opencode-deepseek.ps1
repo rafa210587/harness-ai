@@ -18,7 +18,7 @@ function Require-Command {
 Require-Command "opencode"
 
 Write-Host "Checking OpenCode DeepSeek authentication..."
-$authResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("auth", "list")
+$authResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 30 -Arguments @("auth", "list")
 $authOutput = $authResult.Output
 if ($authResult.ExitCode -ne 0) {
     throw "opencode auth list failed."
@@ -37,7 +37,7 @@ Select DeepSeek and enter the API key, then run this script again.
 }
 
 Write-Host "Refreshing/listing DeepSeek models..."
-$modelResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("models", "deepseek", "--refresh")
+$modelResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @("models", "deepseek", "--refresh")
 $modelOutput = $modelResult.Output
 if ($modelResult.ExitCode -ne 0) {
     throw "opencode models deepseek --refresh failed."
@@ -61,7 +61,7 @@ $marker = "OPENCODE_DEEPSEEK_OK"
 $prompt = "Reply with exactly: $marker. Do not call any tool."
 
 Write-Host "Running real OpenCode -> DeepSeek request with $Model ..."
-$runResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+$runResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 180 -Arguments @(
     "run", "--model", $Model, "--format", "json", $prompt
 )
 $response = $runResult.Output
