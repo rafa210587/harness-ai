@@ -4,6 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 
+import * as policyPluginModule from "../.opencode/plugins/harness-policy.js"
 import { HarnessPolicy } from "../.opencode/plugins/harness-policy.js"
 import {
   assertSafeBash,
@@ -78,4 +79,15 @@ test("plugin hook blocks direct sensitive read", async () => {
       ),
     /sensitive path/,
   )
+})
+
+
+test("plugin module exports only plugin functions", () => {
+  for (const [name, value] of Object.entries(policyPluginModule)) {
+    assert.equal(
+      typeof value,
+      "function",
+      `plugin export ${name} must be a function for OpenCode 1.18.31 legacy loader`,
+    )
+  }
 })
