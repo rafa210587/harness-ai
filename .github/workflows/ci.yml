@@ -71,6 +71,7 @@ jobs:
             "scripts/scan-opencode-cutover-residue.ps1",
             "scripts/validate-opencode-cutover-readiness.ps1",
             "scripts/cutover-opencode-generic-runtime.ps1",
+            "scripts/validate-opencode-stage2.ps1",
             "scripts/lib/native.ps1"
           )
           foreach ($file in $files) {
