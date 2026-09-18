@@ -26,7 +26,7 @@ function Invoke-SecurityProbe {
     Write-Host ""
     Write-Host "=== security probe: $Name ==="
 
-    $runResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+    $runResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 180 -Arguments @(
         "run", "--model", $Model, "--agent", "security-smoke", "--format", "json", $Prompt
     )
     $response = $runResult.Output
