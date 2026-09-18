@@ -70,6 +70,7 @@ jobs:
             "scripts/validate-opencode-mock-runtime.ps1",
             "scripts/scan-opencode-cutover-residue.ps1",
             "scripts/validate-opencode-cutover-readiness.ps1",
+            "scripts/cutover-opencode-generic-runtime.ps1",
             "scripts/lib/native.ps1"
           )
           foreach ($file in $files) {
@@ -206,3 +207,25 @@ jobs:
       - name: Report OpenCode cutover readiness
         shell: pwsh
         run: .\scripts\validate-opencode-cutover-readiness.ps1
+
+      - name: Dry-run guarded OpenCode cutover
+        shell: pwsh
+        run: |
+          .\scripts\cutover-opencode-generic-runtime.ps1
+
+          $failedAsExpected = $false
+          try {
+            .\scripts\cutover-opencode-generic-runtime.ps1 -Execute -ConfirmCutover
+          }
+          catch {
+            if ($_.Exception.Message -match "missing local evidence markers") {
+              $failedAsExpected = $true
+            }
+            else {
+              throw
+            }
+          }
+
+          if (-not $failedAsExpected) {
+            throw "Cutover guard regression: destructive execution did not refuse missing real-host evidence."
+          }
