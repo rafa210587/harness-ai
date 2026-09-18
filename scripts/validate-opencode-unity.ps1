@@ -21,7 +21,7 @@ $env:OPENCODE_CONFIG_CONTENT = $override
 
 try {
     Write-Host "Checking Unity MCP connection..."
-    $mcpResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @("mcp", "list")
+    $mcpResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 90 -Arguments @("mcp", "list")
     $mcpOutput = $mcpResult.Output
     $mcpOutput | Write-Host
 
@@ -56,7 +56,7 @@ Do not install packages, change project settings, save unrelated scene changes, 
 "@
 
     Write-Host "Running OpenCode -> model -> Unity MCP smoke..."
-    $runResult = Invoke-NativeCommandCapture -FilePath "opencode" -Arguments @(
+    $runResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 180 -Arguments @(
         "run", "--model", $Model, "--agent", "unity-smoke", "--format", "json", $prompt
     )
     $response = $runResult.Output
