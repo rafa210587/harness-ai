@@ -53,6 +53,70 @@ Then use:
 Do not remove custom runtime code until its replacement passes the gates in `OPENCODE_MIGRATION.md`.
 
 
+## OpenCode migration local gates
+
+After checking out `migration/opencode-core`:
+
+```powershell
+git pull
+npm install -g opencode-ai@1.18.31
+uv python install 3.12
+```
+
+Validate repository/config/MCP packages:
+
+```powershell
+.\scripts\validate-opencode.ps1
+.\scripts\validate-opencode-mcp-candidates.ps1
+```
+
+Configure DeepSeek once through OpenCode:
+
+```powershell
+opencode auth login
+opencode models deepseek --refresh
+```
+
+Choose the exact `deepseek/<model-id>` printed by the model list.
+
+Run the provider + browser gates:
+
+```powershell
+.\scripts\validate-opencode-local.ps1 -Model "deepseek/<model-id>" -Browser
+```
+
+For Unity, use only the disposable smoke project:
+
+```powershell
+.\scripts\prepare-unity-mcp.ps1 -ProjectPath "$env:HARNESS_UNITY_SMOKE_PROJECT"
+```
+
+Then open that project in Unity, wait for package resolution/compilation, start/configure MCP for Unity, and run:
+
+```powershell
+.\scripts\validate-opencode-unity.ps1 -Model "deepseek/<model-id>"
+```
+
+For Blender:
+
+```powershell
+.\scripts\prepare-blender-mcp.ps1
+```
+
+Then open Blender, enable **Interface: MCP for Blender**, start its MCP server from the Blender sidebar, and run:
+
+```powershell
+.\scripts\validate-opencode-blender.ps1 -Model "deepseek/<model-id>"
+```
+
+Or after both applications are prepared:
+
+```powershell
+.\scripts\validate-opencode-local.ps1 -Model "deepseek/<model-id>" -All
+```
+
+The local scripts enable Unity/Blender MCP only for the process through `OPENCODE_CONFIG_CONTENT`; they do not rewrite the committed project config.
+
 ## Requirements
 
 Required:
