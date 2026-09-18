@@ -68,6 +68,8 @@ jobs:
             "scripts/validate-opencode-local.ps1",
             "scripts/validate-opencode-security.ps1",
             "scripts/validate-opencode-mock-runtime.ps1",
+            "scripts/scan-opencode-cutover-residue.ps1",
+            "scripts/validate-opencode-cutover-readiness.ps1",
             "scripts/lib/native.ps1"
           )
           foreach ($file in $files) {
@@ -168,3 +170,7 @@ jobs:
       - name: Validate OpenCode runtime with local mock provider
         shell: pwsh
         run: .\scripts\validate-opencode-mock-runtime.ps1
+
+      - name: Report OpenCode cutover readiness
+        shell: pwsh
+        run: .\scripts\validate-opencode-cutover-readiness.ps1
