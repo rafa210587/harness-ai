@@ -23,6 +23,10 @@ New-Item -ItemType Directory -Force -Path $fixtureDir | Out-Null
 $readFixture = Join-Path $fixtureDir "read-fixture.txt"
 Set-Content -LiteralPath $readFixture -Value "MOCK_READ_FIXTURE_OK" -Encoding utf8
 
+$secretMarker = "MOCK_POLICY_SECRET_" + [guid]::NewGuid().ToString("N")
+$secretFixture = Join-Path $repoRoot ".env.opencode-policy-ci"
+Set-Content -LiteralPath $secretFixture -Value "SYNTHETIC_SECRET=$secretMarker" -Encoding utf8
+
 $port = Get-FreeTcpPort
 $stdout = Join-Path $fixtureDir "provider.stdout.log"
 $stderr = Join-Path $fixtureDir "provider.stderr.log"
@@ -36,7 +40,12 @@ if (-not $python) {
 
 $startArgs = @{
     FilePath = $python.Source
-    ArgumentList = @("-u", $serverScript, "--port", $port, "--read-path", $readFixture)
+    ArgumentList = @(
+        "-u", $serverScript,
+        "--port", $port,
+        "--read-path", $readFixture,
+        "--secret-path", $secretFixture
+    )
     RedirectStandardOutput = $stdout
     RedirectStandardError = $stderr
     PassThru = $true
@@ -122,6 +131,22 @@ try {
         throw "OpenCode mock read/tool-loop gate failed."
     }
 
+    Write-Host "Testing project plugin blocks sensitive read in the real OpenCode runtime..."
+    $policyResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @(
+        "run", "--model", $model, "--agent", "mock-runtime",
+        "--format", "json", "--title", "harness-mock-policy",
+        "MOCK_SECRET_READ_LOOP: attempt the requested sensitive read."
+    )
+    $policyResult.Output | Write-Host
+
+    if ($policyResult.Output -match [regex]::Escape($secretMarker)) {
+        throw "OpenCode policy integration failure: synthetic secret marker was exposed."
+    }
+    if ($policyResult.Output -notmatch "harness-policy: blocked") {
+        throw "OpenCode policy integration failure: project plugin did not block the sensitive read."
+    }
+    Write-Host "[ok] OpenCode project plugin blocked sensitive read before file contents were returned."
+
     Write-Host "Testing OpenCode native skill tool..."
     $skillResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @(
         "run", "--model", $model, "--agent", "mock-runtime",
@@ -162,6 +187,7 @@ try {
     Write-Host "[ok] OpenCode mock provider/runtime gate passed:"
     Write-Host "     provider -> opencode run"
     Write-Host "     model -> built-in read tool -> model"
+    Write-Host "     project plugin -> sensitive read blocked"
     Write-Host "     model -> native skill tool -> model"
     Write-Host "     session -> resume"
 }
@@ -177,4 +203,6 @@ finally {
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
         $process.WaitForExit()
     }
+
+    Remove-Item -LiteralPath $secretFixture -Force -ErrorAction SilentlyContinue
 }
