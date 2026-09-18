@@ -43,7 +43,7 @@ function Get-SearchFiles {
 $findings = @()
 
 foreach ($item in $patterns) {
-    $matches = @()
+    $hits = @()
 
     foreach ($file in (Get-SearchFiles -Roots $item.Roots | Sort-Object FullName -Unique)) {
         if ($file.Extension -notin @(".py", ".ps1", ".json", ".jsonc", ".yaml", ".yml", ".toml", ".md", ".js", ".mjs", ".ts")) {
@@ -55,16 +55,16 @@ foreach ($item in $patterns) {
             $lineNumber++
             if ($line -match $item.Regex) {
                 $relative = [IO.Path]::GetRelativePath($repoRoot, $file.FullName)
-                $matches += "$($relative):$lineNumber"
+                $hits += "$($relative):$lineNumber"
             }
         }
     }
 
-    if ($matches.Count -gt 0) {
+    if ($hits.Count -gt 0) {
         $findings += [pscustomobject]@{
             Name = $item.Name
-            Count = $matches.Count
-            Examples = ($matches | Select-Object -First 8) -join ", "
+            Count = $hits.Count
+            Examples = ($hits | Select-Object -First 8) -join ", "
         }
     }
 }
