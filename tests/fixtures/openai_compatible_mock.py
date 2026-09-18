@@ -176,8 +176,9 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(f"data: {json.dumps(payload)}\n\n".encode())
             self.wfile.flush()
 
+        send(chunk(model, {"role": "assistant"}))
         if response_kind[0] == "text":
-            send(chunk(model, {"role": "assistant", "content": response_kind[1]}))
+            send(chunk(model, {"content": response_kind[1]}))
             send(chunk(model, {}, finish_reason="stop"))
         else:
             spec = response_kind[1]
@@ -185,7 +186,6 @@ class Handler(BaseHTTPRequestHandler):
                 chunk(
                     model,
                     {
-                        "role": "assistant",
                         "tool_calls": [
                             {
                                 "index": 0,
