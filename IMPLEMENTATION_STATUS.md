@@ -133,6 +133,18 @@ Level 6: complete cross-application workflow with visual verification
 
 The core, including the Python distribution build, is validated through Level 4. Level 5 has been validated on Rafael's Windows host for DeepSeek, Chrome, Blender, Unity, agent/tool use, and the real Blender -> Unity Level 6A workflow. Level 6B visual verification/correction remains.
 
+## OpenCode generic-runtime replacement evidence
+
+```text
+OpenCode mock runtime replacement evidence: PASS
+- custom provider config -> opencode run
+- model -> built-in read -> model
+- model -> native OpenCode skill -> model
+- OpenCode session -> resume
+```
+
+This is sufficient CI evidence for replacement of the custom generic runtime layer, but destructive deletion remains blocked until the real DeepSeek/security/browser gates pass on Rafael's Windows host.
+
 ## Active OpenCode migration security finding
 
 OpenCode permissions are not accepted as the sole deterministic secret boundary.
