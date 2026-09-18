@@ -26,6 +26,12 @@ real Windows CI MCP handshake proven: Playwright MCP connected
 smoke-agent permission precedence verified from resolved OpenCode agent output
 ```
 
+Real-host evidence added:
+
+```text
+real-host MCP package resolution: Unity 10.2.0 + Blender 2.0.0 passed
+```
+
 Still pending real-host evidence:
 
 ```text
