@@ -29,6 +29,7 @@ smoke-agent permission precedence verified from resolved OpenCode agent output
 Real-host evidence added:
 
 ```text
+real-host OpenCode foundation + Playwright MCP connection passed
 real-host MCP package resolution: Unity 10.2.0 + Blender 2.0.0 passed
 ```
 
