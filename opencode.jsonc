@@ -75,13 +75,14 @@
       "command": [
         "uvx",
         "--from",
-        "mcp-for-blender==1.9.1",
+        "mcp-for-blender==2.0.0",
         "mcp-for-blender"
       ],
       "environment": {
         "BLENDER_HOST": "localhost",
         "BLENDER_PORT": "9876",
-        "DISABLE_TELEMETRY": "true"
+        "DISABLE_TELEMETRY": "true",
+        "BLENDER_MCP_SAFE_MODE": "1"
       },
       "enabled": false,
       "timeout": 300000
