@@ -150,7 +150,7 @@ jobs:
 
       - name: Validate OpenCode config
         shell: pwsh
-        run: .\scripts\validate-opencode.ps1
+        run: .\scripts\validate-opencode.ps1 -SkipMcp
 
       - name: Validate pinned Unity and Blender MCP entrypoints
         shell: pwsh
