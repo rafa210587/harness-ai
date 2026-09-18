@@ -27,6 +27,10 @@ function Write-PassEvidence {
     Set-Content -LiteralPath (Join-Path $evidenceDir "$Name.pass") -Value $payload -Encoding utf8
 }
 
+$evidenceDir = Join-Path (Resolve-Path (Join-Path $scriptRoot "..")).Path "workspace\opencode-evidence"
+New-Item -ItemType Directory -Force -Path $evidenceDir | Out-Null
+Remove-Item -LiteralPath (Join-Path $evidenceDir "browser.pass") -Force -ErrorAction SilentlyContinue
+
 $marker = "BROWSER_SMOKE_OK"
 $prompt = @"
 Use the Playwright MCP to navigate to $Url.
