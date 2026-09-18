@@ -109,19 +109,43 @@ Before adding new code, document why OpenCode, an official MCP, or a mature exis
 
 ### 3.5 Security remains deterministic
 
-OpenCode permissions handle user approval.
+OpenCode permissions handle user approval and normal tool gating, but they are **not accepted as the sole security boundary** for this project.
+
+Current upstream behavior/bugs mean we must separately defend against:
+
+```text
+indirect grep/glob exposure
+outside-root traversal
+subagent permission inconsistencies
+shell pattern/obfuscation bypasses
+Desktop plugin-hook differences
+```
+
+Current migration policy:
+
+```text
+task/subagents            -> deny
+direct sensitive paths    -> harness-policy plugin + OpenCode deny rules
+outside-root/symlink      -> harness-policy plugin for direct file tools
+git/ripgrep secret files  -> .gitignore
+provider credentials      -> OpenCode/provider auth outside the final worktree
+arbitrary shell           -> approval boundary; never claimed as a secret sandbox
+Desktop local plugins     -> not trusted until separately validated
+```
 
 Application integrations must still enforce their own structural invariants where required:
 
 ```text
 path boundaries
-secret redaction
+secret redaction where technically enforceable
 SSRF/network restrictions
 Unity project boundaries
 Blender output boundaries
 dangerous operation validation
 artifact path validation
 ```
+
+The project-local policy plugin is deliberately small. It must not evolve into another agent runtime.
 
 ## 4. Current evidence baseline
 
@@ -570,12 +594,17 @@ This proves the agent-local restrictions are appended after inherited/global per
 
 Tasks:
 
-- [ ] port generic approval policy to OpenCode permissions
-- [ ] deny direct secret files
-- [ ] enforce external-directory policy
-- [ ] review destructive shell rules
+- [x] port conservative generic approval policy to OpenCode permissions
+- [x] disable task/subagents during migration
+- [x] deny direct secret files in OpenCode config
+- [x] add project-local direct-path/outside-root/symlink policy plugin
+- [x] add Git/ripgrep ignores for credential/key material
+- [x] review destructive shell rules and keep broad shell on approval
+- [ ] prove the policy plugin is loaded and blocking through real OpenCode CLI execution
+- [ ] run exfiltration regression cases against real OpenCode
+- [ ] remove project-local .env credential dependency from the final OpenCode path
 - [ ] preserve only application-level security invariants still required
-- [ ] reproduce secret/path/security regression suite
+- [ ] explicitly document residual shell trust boundary
 
 Exit:
 
