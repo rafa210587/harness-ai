@@ -97,6 +97,27 @@ $runResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 18
 $response = $runResult.Output
 if ($runResult.ExitCode -ne 0) {
     $response | Write-Host
+
+    if (
+        $response -match "(?i)statusCode[^0-9]*401" -or
+        $response -match "(?i)authentication fails" -or
+        $response -match "(?i)api key.*invalid"
+    ) {
+        throw @"
+DeepSeek rejected the credential stored in OpenCode (HTTP 401).
+
+The credential exists in auth.json, but the provider says the key is invalid.
+
+Run:
+  opencode auth logout deepseek
+  opencode auth login --provider deepseek
+
+Use a newly generated DeepSeek API key, then rerun Stage 2.
+
+Note: 'opencode auth list' proves the credential is stored; it does not prove the key is valid. The live provider request is the validation.
+"@
+    }
+
     throw "opencode run failed."
 }
 
