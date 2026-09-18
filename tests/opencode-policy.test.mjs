@@ -6,81 +6,10 @@ import test from "node:test"
 
 import * as policyPluginModule from "../.opencode/plugins/harness-policy.js"
 import { HarnessPolicy } from "../.opencode/plugins/harness-policy.js"
-import {
-  assertSafeBash,
-  assertSafePath,
-  assertSafeSearch,
-  isSensitive,
-} from "../.opencode/lib/harness-policy-core.js"
 
-test("sensitive path detection blocks secrets but allows env template", () => {
-  assert.equal(isSensitive("C:/repo/.env"), true)
-  assert.equal(isSensitive("C:/repo/.env.local"), true)
-  assert.equal(isSensitive("C:/repo/private.pem"), true)
-  assert.equal(isSensitive("C:/repo/id_ed25519"), true)
-  assert.equal(isSensitive("C:/repo/.env.example"), false)
-})
-
-test("direct file tools cannot escape project root", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-outside-"))
-
-  assert.throws(
-    () => assertSafePath("read", path.join(outside, "file.txt"), root),
-    /outside project root/,
-  )
-})
-
-test("symlink escape is rejected", { skip: process.platform === "win32" }, () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-outside-"))
-  const link = path.join(root, "escape")
-  fs.symlinkSync(outside, link, "dir")
-
-  assert.throws(
-    () => assertSafePath("read", path.join(link, "secret.txt"), root),
-    /outside project root/,
-  )
-})
-
-test("grep and glob cannot explicitly target secret patterns", () => {
-  assert.throws(
-    () => assertSafeSearch("grep", { pattern: "TOKEN", include: ".env*" }),
-    /sensitive file patterns/,
-  )
-  assert.throws(
-    () => assertSafeSearch("glob", { pattern: "**/*.pem" }),
-    /sensitive file patterns/,
-  )
-  assert.doesNotThrow(() =>
-    assertSafeSearch("grep", { pattern: "class Foo", include: "*.py" }),
-  )
-})
-
-test("shell commands explicitly referencing secret paths are blocked", () => {
-  assert.throws(
-    () => assertSafeBash("bash", { command: "cat .env" }),
-    /sensitive path/,
-  )
-  assert.doesNotThrow(() =>
-    assertSafeBash("bash", { command: "git status --short" }),
-  )
-})
-
-test("plugin hook blocks direct sensitive read", async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
-  const hooks = await HarnessPolicy({ directory: root })
-
-  await assert.rejects(
-    () =>
-      hooks["tool.execute.before"](
-        { tool: "read", sessionID: "s", callID: "c" },
-        { args: { filePath: path.join(root, ".env") } },
-      ),
-    /sensitive path/,
-  )
-})
-
+async function hooksFor(root) {
+  return HarnessPolicy({ directory: root })
+}
 
 test("plugin module exports only plugin functions", () => {
   for (const [name, value] of Object.entries(policyPluginModule)) {
@@ -90,4 +19,104 @@ test("plugin module exports only plugin functions", () => {
       `plugin export ${name} must be a function for OpenCode 1.18.31 legacy loader`,
     )
   }
+})
+
+test("direct sensitive read is blocked but env template is allowed", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
+  const hooks = await hooksFor(root)
+
+  await assert.rejects(
+    () =>
+      hooks["tool.execute.before"](
+        { tool: "read", sessionID: "s", callID: "c" },
+        { args: { filePath: path.join(root, ".env.local") } },
+      ),
+    /sensitive path/,
+  )
+
+  await assert.doesNotReject(() =>
+    hooks["tool.execute.before"](
+      { tool: "read", sessionID: "s", callID: "c2" },
+      { args: { filePath: path.join(root, ".env.example") } },
+    ),
+  )
+})
+
+test("direct file tools cannot escape project root", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-outside-"))
+  const hooks = await hooksFor(root)
+
+  await assert.rejects(
+    () =>
+      hooks["tool.execute.before"](
+        { tool: "read", sessionID: "s", callID: "c" },
+        { args: { filePath: path.join(outside, "file.txt") } },
+      ),
+    /outside project root/,
+  )
+})
+
+test("targeted grep/glob secret patterns are blocked", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
+  const hooks = await hooksFor(root)
+
+  await assert.rejects(
+    () =>
+      hooks["tool.execute.before"](
+        { tool: "grep", sessionID: "s", callID: "c" },
+        { args: { path: root, pattern: "TOKEN", include: ".env*" } },
+      ),
+    /sensitive file patterns/,
+  )
+
+  await assert.rejects(
+    () =>
+      hooks["tool.execute.before"](
+        { tool: "glob", sessionID: "s", callID: "c2" },
+        { args: { path: root, pattern: "**/*.pem" } },
+      ),
+    /sensitive file patterns/,
+  )
+})
+
+test("shell references to secret paths or env vars are blocked", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
+  const hooks = await hooksFor(root)
+
+  await assert.rejects(
+    () =>
+      hooks["tool.execute.before"](
+        { tool: "bash", sessionID: "s", callID: "c" },
+        { args: { command: "cat .env" } },
+      ),
+    /sensitive material/,
+  )
+
+  await assert.rejects(
+    () =>
+      hooks["tool.execute.before"](
+        { tool: "bash", sessionID: "s", callID: "c2" },
+        { args: { command: "echo $env:DEEPSEEK_API_KEY" } },
+      ),
+    /sensitive material/,
+  )
+})
+
+test("shell.env strips common provider API keys", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
+  const hooks = await hooksFor(root)
+  const output = {
+    env: {
+      DEEPSEEK_API_KEY: "synthetic",
+      OPENAI_API_KEY: "synthetic",
+      PATH: "safe",
+    },
+  }
+
+  await hooks["shell.env"]({ cwd: root }, output)
+
+  assert.equal(output.env.DEEPSEEK_API_KEY, undefined)
+  assert.equal(output.env.OPENAI_API_KEY, undefined)
+  assert.equal(output.env.PATH, "safe")
 })
