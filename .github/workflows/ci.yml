@@ -57,7 +57,8 @@ jobs:
             "scripts/prepare-unity-mcp.ps1",
             "scripts/prepare-blender-mcp.ps1",
             "scripts/validate-opencode-deepseek.ps1",
-            "scripts/validate-opencode-browser.ps1"
+            "scripts/validate-opencode-browser.ps1",
+            "scripts/validate-opencode-mcp-candidates.ps1"
           )
           foreach ($file in $files) {
             $tokens = $null
@@ -98,6 +99,11 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
       - name: Install pinned OpenCode
         shell: pwsh
         run: npm install -g opencode-ai@1.18.31
@@ -113,3 +119,7 @@ jobs:
       - name: Validate OpenCode config
         shell: pwsh
         run: .\scripts\validate-opencode.ps1
+
+      - name: Validate pinned Unity and Blender MCP entrypoints
+        shell: pwsh
+        run: .\scripts\validate-opencode-mcp-candidates.ps1
