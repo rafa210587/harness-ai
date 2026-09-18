@@ -124,6 +124,17 @@ class Handler(BaseHTTPRequestHandler):
                         "arguments": json.dumps({"name": "browser-research"}),
                     },
                 )
+        elif "MOCK_SECRET_READ_LOOP" in user_text:
+            if has_tool_result(messages):
+                response_kind = ("text", "MOCK_SECRET_READ_LOOP_OK")
+            else:
+                response_kind = (
+                    "tool",
+                    {
+                        "name": "read",
+                        "arguments": json.dumps({"filePath": self.server.secret_path}),
+                    },
+                )
         elif "MOCK_READ_LOOP" in user_text:
             if has_tool_result(messages):
                 response_kind = ("text", "MOCK_READ_LOOP_OK")
@@ -225,12 +236,18 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--read-path", required=True)
+    parser.add_argument("--secret-path", required=True)
     args = parser.parse_args()
 
     read_path = str(Path(args.read_path).resolve())
+    secret_path = str(Path(args.secret_path).resolve())
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     server.read_path = read_path  # type: ignore[attr-defined]
-    print(f"mock-provider-ready port={args.port} read_path={read_path}", flush=True)
+    server.secret_path = secret_path  # type: ignore[attr-defined]
+    print(
+        f"mock-provider-ready port={args.port} read_path={read_path} secret_path={secret_path}",
+        flush=True,
+    )
     server.serve_forever()
 
 
