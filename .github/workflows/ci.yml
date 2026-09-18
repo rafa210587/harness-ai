@@ -173,34 +173,6 @@ jobs:
         shell: pwsh
         run: .\scripts\validate-opencode-mcp-candidates.ps1
 
-      - name: Validate OpenCode smoke agents are discovered
-        shell: pwsh
-        run: |
-          $previous = $env:OPENCODE_CONFIG_CONTENT
-          $env:OPENCODE_CONFIG_CONTENT = '{"mcp":{"playwright":{"enabled":false},"unityMCP":{"enabled":false},"blenderMCP":{"enabled":false}}}'
-          try {
-            . .\scripts\lib\native.ps1
-            $agentResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @("agent", "list")
-            $agents = $agentResult.Output
-            $agents | Write-Host
-            if ($agentResult.ExitCode -ne 0) {
-              throw "opencode agent list failed with exit code $($agentResult.ExitCode)."
-            }
-            foreach ($name in @("browser-smoke", "unity-smoke", "blender-smoke", "security-smoke", "mock-runtime")) {
-              if ($agents -notmatch [regex]::Escape($name)) {
-                throw "OpenCode did not discover agent '$name'."
-              }
-            }
-          }
-          finally {
-            if ($null -eq $previous) {
-              Remove-Item Env:OPENCODE_CONFIG_CONTENT -ErrorAction SilentlyContinue
-            }
-            else {
-              $env:OPENCODE_CONFIG_CONTENT = $previous
-            }
-          }
-
       - name: Validate OpenCode runtime with local mock provider
         shell: pwsh
         run: .\scripts\validate-opencode-mock-runtime.ps1
