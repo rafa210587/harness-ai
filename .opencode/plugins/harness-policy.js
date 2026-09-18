@@ -27,6 +27,17 @@ const SENSITIVE_ENV_KEYS = [
   "ANTHROPIC_API_KEY",
   "GEMINI_API_KEY",
   "GOOGLE_API_KEY",
+  "GITHUB_TOKEN",
+  "GH_TOKEN",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "AWS_SESSION_TOKEN",
+  "AZURE_OPENAI_API_KEY",
+  "OPENROUTER_API_KEY",
+  "HF_TOKEN",
+  "HUGGINGFACE_HUB_TOKEN",
+  "NPM_TOKEN",
+  "PYPI_API_TOKEN",
 ]
 
 function canonicalize(candidate, root) {
@@ -142,6 +153,17 @@ function assertSafeBash(tool, args) {
     "anthropic_api_key",
     "gemini_api_key",
     "google_api_key",
+    "github_token",
+    "gh_token",
+    "aws_access_key_id",
+    "aws_secret_access_key",
+    "aws_session_token",
+    "azure_openai_api_key",
+    "openrouter_api_key",
+    "hf_token",
+    "huggingface_hub_token",
+    "npm_token",
+    "pypi_api_token",
   ]
 
   if (sensitiveTokens.some((token) => command.includes(token))) {
@@ -166,8 +188,12 @@ export const HarnessPolicy = async ({ directory }) => {
     },
 
     "shell.env": async (_input, output) => {
+      // OpenCode composes the child environment as:
+      //   { ...process.env, ...pluginEnv }
+      // Therefore deleting a key from pluginEnv is insufficient: the inherited
+      // process.env value would remain. An explicit empty override is required.
       for (const key of SENSITIVE_ENV_KEYS) {
-        delete output.env[key]
+        output.env[key] = ""
       }
     },
   }
