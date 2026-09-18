@@ -166,8 +166,13 @@ jobs:
           $previous = $env:OPENCODE_CONFIG_CONTENT
           $env:OPENCODE_CONFIG_CONTENT = '{"mcp":{"playwright":{"enabled":false},"unityMCP":{"enabled":false},"blenderMCP":{"enabled":false}}}'
           try {
-            $agents = (opencode agent list 2>&1 | Out-String)
+            . .\scripts\lib\native.ps1
+            $agentResult = Invoke-NativeCommandCapture -FilePath "opencode" -TimeoutSeconds 60 -Arguments @("agent", "list")
+            $agents = $agentResult.Output
             $agents | Write-Host
+            if ($agentResult.ExitCode -ne 0) {
+              throw "opencode agent list failed with exit code $($agentResult.ExitCode)."
+            }
             foreach ($name in @("browser-smoke", "unity-smoke", "blender-smoke", "security-smoke", "mock-runtime")) {
               if ($agents -notmatch [regex]::Escape($name)) {
                 throw "OpenCode did not discover agent '$name'."
