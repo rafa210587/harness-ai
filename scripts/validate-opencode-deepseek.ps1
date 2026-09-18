@@ -25,6 +25,10 @@ function Write-PassEvidence {
     Set-Content -LiteralPath (Join-Path $evidenceDir "$Name.pass") -Value $payload -Encoding utf8
 }
 
+$evidenceDir = Join-Path (Resolve-Path (Join-Path $scriptRoot "..")).Path "workspace\opencode-evidence"
+New-Item -ItemType Directory -Force -Path $evidenceDir | Out-Null
+Remove-Item -LiteralPath (Join-Path $evidenceDir "deepseek.pass") -Force -ErrorAction SilentlyContinue
+
 function Require-Command {
     param([Parameter(Mandatory = $true)][string]$Name)
     $command = Get-Command $Name -ErrorAction SilentlyContinue
