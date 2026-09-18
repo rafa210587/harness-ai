@@ -268,7 +268,29 @@ testability
 
 Do not build a desktop automation framework during this migration.
 
-Benchmark existing Windows/computer-use MCP solutions first.
+Current shortlist for a later benchmark:
+
+```text
+sandraschi/windows-computer-use-mcp
+- primary functional candidate
+- Python / pywinauto
+- UI Automation + screenshots + OCR + mouse/keyboard
+- active in September 2026
+- MIT
+- includes explicit safety documentation
+
+deploymenttheory/windows-mcp-server
+- policy/security candidate
+- Go
+- UI Automation + screenshots + Windows/system capabilities
+- device-policy / egress / audit focus
+- active in September 2026
+- MIT
+```
+
+Other candidates remain useful references but are currently smaller, less active, or explicitly provide little/no security gating.
+
+No Windows computer-use MCP is pinned yet. Selection requires a real-host benchmark after the structured Blender/Unity/browser paths are working, because desktop automation remains a fallback capability.
 
 ## 7. Target repository shape
 
