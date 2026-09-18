@@ -34,6 +34,7 @@ real opencode run
 real Playwright MCP -> Chrome interaction
 Unity MCP benchmark
 Blender MCP benchmark
+OpenCode-native runtime skill files added; real skill-load proof pending
 runtime cutover/deletion
 ```
 
