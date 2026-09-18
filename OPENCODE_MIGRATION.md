@@ -485,6 +485,19 @@ else:
 
 ### M4 — Blender replacement benchmark
 
+Primary Blender candidate:
+
+```text
+ahujasid/mcp-for-blender
+PyPI package: mcp-for-blender
+pinned version: 2.0.0
+telemetry: disabled
+safe mode: enabled
+```
+
+The candidate is actively maintained, documents OpenCode configuration, supports arbitrary Blender Python execution, scene inspection, screenshots and asset workflows. Safe mode remains enabled by default because upstream states it blocks risky direct filesystem/process/network behavior while retaining normal modeling, rendering, saving and import/export operations.
+
+
 Tasks:
 
 - [ ] shortlist mature Blender MCP candidates
