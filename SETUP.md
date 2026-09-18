@@ -87,6 +87,14 @@ Run the provider + synthetic security + browser gates:
 
 The security gate creates only synthetic temporary secrets, checks direct read/search/shell/outside-root paths, and removes the fixtures afterward. It never uses your real API key as test data.
 
+For the current migration Stage 2 (real DeepSeek + synthetic security + browser), use one command:
+
+```powershell
+.\scripts\validate-opencode-stage2.ps1
+```
+
+If DeepSeek authentication is missing, the script starts `opencode auth login` interactively. If multiple DeepSeek models are available, it lists them and asks which one to use. On success it writes local evidence markers for `deepseek`, `security`, and `browser` under `workspace/opencode-evidence/`.
+
 For Unity, use only the disposable smoke project:
 
 ```powershell
