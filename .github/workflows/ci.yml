@@ -136,6 +136,17 @@ jobs:
             throw "Native stdout/stderr capture regression."
           }
 
+          $multiArgResult = Invoke-NativeCommandCapture -FilePath "node" -TimeoutSeconds 10 -Arguments @(
+            "-e",
+            "console.log(process.argv.slice(1).join('|'))",
+            "alpha",
+            "beta"
+          )
+          $multiArgResult.Output | Write-Host
+          if ($multiArgResult.ExitCode -ne 0 -or $multiArgResult.Output -notmatch "alpha\|beta") {
+            throw "Native timeout-mode argument boundary regression."
+          }
+
           $timeoutResult = Invoke-NativeCommandCapture -FilePath "node" -TimeoutSeconds 1 -Arguments @(
             "-e",
             "setTimeout(() => {}, 10000)"
