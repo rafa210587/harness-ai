@@ -103,20 +103,39 @@ test("shell references to secret paths or env vars are blocked", async () => {
   )
 })
 
-test("shell.env strips common provider API keys", async () => {
+test("shell.env overrides inherited provider secrets while preserving safe env", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "harness-policy-root-"))
   const hooks = await hooksFor(root)
   const output = {
     env: {
-      DEEPSEEK_API_KEY: "synthetic",
-      OPENAI_API_KEY: "synthetic",
       PATH: "safe",
+      HARNESS_SAFE_ENV: "HARNESS_SAFE_ENV_OK",
     },
   }
 
   await hooks["shell.env"]({ cwd: root }, output)
 
-  assert.equal(output.env.DEEPSEEK_API_KEY, undefined)
-  assert.equal(output.env.OPENAI_API_KEY, undefined)
+  for (const key of [
+    "DEEPSEEK_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GEMINI_API_KEY",
+    "GOOGLE_API_KEY",
+    "GITHUB_TOKEN",
+    "GH_TOKEN",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "AZURE_OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
+    "HF_TOKEN",
+    "HUGGINGFACE_HUB_TOKEN",
+    "NPM_TOKEN",
+    "PYPI_API_TOKEN",
+  ]) {
+    assert.equal(output.env[key], "", key + " must be explicitly overridden")
+  }
+
   assert.equal(output.env.PATH, "safe")
+  assert.equal(output.env.HARNESS_SAFE_ENV, "HARNESS_SAFE_ENV_OK")
 })
