@@ -29,7 +29,8 @@ function Invoke-NativeCommandCapture {
                     $PSNativeCommandUseErrorActionPreference = $false
                 }
 
-                $lines = & $Payload.FilePath @($Payload.Arguments) 2>&1 |
+                $nativeArguments = @($Payload.Arguments)
+                $lines = & $Payload.FilePath @nativeArguments 2>&1 |
                     ForEach-Object { $_.ToString() }
                 $exitCode = $LASTEXITCODE
 
