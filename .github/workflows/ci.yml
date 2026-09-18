@@ -58,7 +58,10 @@ jobs:
             "scripts/prepare-blender-mcp.ps1",
             "scripts/validate-opencode-deepseek.ps1",
             "scripts/validate-opencode-browser.ps1",
-            "scripts/validate-opencode-mcp-candidates.ps1"
+            "scripts/validate-opencode-mcp-candidates.ps1",
+            "scripts/validate-opencode-unity.ps1",
+            "scripts/validate-opencode-blender.ps1",
+            "scripts/validate-opencode-local.ps1"
           )
           foreach ($file in $files) {
             $tokens = $null
@@ -123,3 +126,14 @@ jobs:
       - name: Validate pinned Unity and Blender MCP entrypoints
         shell: pwsh
         run: .\scripts\validate-opencode-mcp-candidates.ps1
+
+      - name: Validate OpenCode smoke agents are discovered
+        shell: pwsh
+        run: |
+          $agents = (opencode agent list 2>&1 | Out-String)
+          $agents | Write-Host
+          foreach ($name in @("browser-smoke", "unity-smoke", "blender-smoke")) {
+            if ($agents -notmatch [regex]::Escape($name)) {
+              throw "OpenCode did not discover agent '$name'."
+            }
+          }
