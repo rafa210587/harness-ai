@@ -985,6 +985,17 @@ rich / typer       # until CLI rewrite
 
 After each application MCP wins, repeat dependency pruning. No dependency is retained merely for historical compatibility.
 
+OpenCode mock provider/runtime CI: PASS
+
+```text
+provider -> opencode run          PASS
+built-in read tool loop           PASS
+native skill load                 PASS
+session resume                    PASS
+```
+
+This is the CI evidence that the custom AgentLoop/provider/runtime skill loader/session engine have an OpenCode replacement. Their destructive deletion is still gated on the real DeepSeek + security + browser host checks below.
+
 ### Cutover trigger
 
 The generic-runtime deletion above is allowed when all of these are green:
