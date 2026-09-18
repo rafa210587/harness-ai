@@ -136,6 +136,14 @@ jobs:
             throw "Native stdout/stderr capture regression."
           }
 
+          $timeoutResult = Invoke-NativeCommandCapture -FilePath "node" -TimeoutSeconds 1 -Arguments @(
+            "-e",
+            "setTimeout(() => {}, 10000)"
+          )
+          if (-not $timeoutResult.TimedOut -or $timeoutResult.ExitCode -ne 124) {
+            throw "Native timeout regression: expected TimedOut=true and exit code 124."
+          }
+
       - name: Test OpenCode security policy plugin
         shell: pwsh
         run: node --test tests/opencode-policy.test.mjs
