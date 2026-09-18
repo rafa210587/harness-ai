@@ -67,6 +67,7 @@ jobs:
             "scripts/validate-opencode-blender.ps1",
             "scripts/validate-opencode-local.ps1",
             "scripts/validate-opencode-security.ps1",
+            "scripts/validate-opencode-mock-runtime.ps1",
             "scripts/lib/native.ps1"
           )
           foreach ($file in $files) {
@@ -158,8 +159,12 @@ jobs:
         run: |
           $agents = (opencode agent list 2>&1 | Out-String)
           $agents | Write-Host
-          foreach ($name in @("browser-smoke", "unity-smoke", "blender-smoke", "security-smoke")) {
+          foreach ($name in @("browser-smoke", "unity-smoke", "blender-smoke", "security-smoke", "mock-runtime")) {
             if ($agents -notmatch [regex]::Escape($name)) {
               throw "OpenCode did not discover agent '$name'."
             }
           }
+
+      - name: Validate OpenCode runtime with local mock provider
+        shell: pwsh
+        run: .\scripts\validate-opencode-mock-runtime.ps1
